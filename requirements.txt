@@ -1,0 +1,8 @@
+scikit-learn==1.5.1
+mne==1.9.0
+braindecode==0.8.1
+torch==2.5.1
+torcheeg==1.1.2
+pybids==0.18.1
+autoreject==0.4.3
+wandb==0.19.1
