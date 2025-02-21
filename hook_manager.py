@@ -14,7 +14,9 @@ from torch import nn as nn
 
 
 _HOOK_LAYER_TYPES = (
-    nn.Conv2d, nn.AdaptiveAvgPool2d, nn.MaxPool2d, nn.modules.batchnorm._BatchNorm)
+    nn.Conv2d, nn.AdaptiveAvgPool2d,
+    nn.MaxPool2d, nn.modules.batchnorm._BatchNorm, 
+    nn.AvgPool2d,nn.Dropout,nn.LazyLinear)
 
 
 class HookManager:
