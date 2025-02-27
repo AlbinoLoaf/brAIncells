@@ -75,7 +75,7 @@ class CKACalculator:
                 self.model1(imgs)
                 self.model2(imgs)
                 all_layer_X, all_layer_Y = self.extract_layer_list_from_hook_manager()
-
+            
                 # Initialize values on first loop
                 if self.num_layers_X is None:
                     curr_hsic_matrix, curr_self_hsic_x, curr_self_hsic_y = self._init_values(all_layer_X, all_layer_Y)
