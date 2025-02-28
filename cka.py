@@ -6,9 +6,11 @@ Author Marius Thomsen inspired by:Repo: https://github.com/numpee/CKA.pytorch
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from torcheeg.models.gnn.dgcnn import Chebynet
+from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
-    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d)):
+    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d)):
         self.activations = {}
         self.hooks = []
 
