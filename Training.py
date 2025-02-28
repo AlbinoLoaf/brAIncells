@@ -6,11 +6,34 @@ import torch.nn.functional as F
 
 
 class TrainNN():
+    
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train_model(self, model, train_loader, val_loader, learning_rate, 
                     pth,name,w_decay=1e-4, epochs=100, prints=True, modrun=0):
+        '''
+        Trains a given torch.nn model
+
+        Arguments
+        -----------
+        model (torch.nn) - model object to train
+        train_loader (torch.utils.data.DataLoader) - training data of the type torch.utils.data.DataLoader
+        val_loader (torch.utils.data.DataLoader) - validation data of the type torch.utils.data.DataLoader
+        learning_rate (float) - training hyperparameter that decides how big each optimization step will be
+        pth (string) - path to save model artifact and metrics at
+        name (string) - name of the model artifact
+        w_decay (float) - weight decay, regularization training hyperparameter
+        epochs (int) - number of epochs to train for
+        prints (bool) - whether debug prints should be printed or not
+        modrun (int) - model id for further comparison using CKA matrices
+
+        Return
+        -----------
+        model (torch.nn) - model object that can be used for prediction
+        losses (np.ndarray) - numpy array where losses[0] is the training loss history and losses[1] 
+                 is the validation loss history
+        '''
         model = model.to(self.device)
 
         criterion = nn.CrossEntropyLoss()
