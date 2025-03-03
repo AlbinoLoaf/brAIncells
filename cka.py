@@ -1,5 +1,5 @@
 """
-Author Marius Thomsen inspired by:Repo: https://github.com/numpee/CKA.pytorch
+inspired by:Repo: https://github.com/numpee/CKA.pytorch
 
 """
 
