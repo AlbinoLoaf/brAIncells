@@ -11,7 +11,7 @@ class TrainNN():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train_model(self, model, train_loader, val_loader, learning_rate, 
-                    pth,name,w_decay=1e-4, epochs=100, prints=True, modrun=0):
+                    path,name,w_decay=1e-4, epochs=100, prints=True, modrun=0):
         '''
         Trains a given torch.nn model
         
@@ -103,11 +103,11 @@ class TrainNN():
                      f"| Val loss: {epoch_loss_val:.4f}, Val acc: {(epoch_accuracy_val*100):.2f}%")
 
         print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}")
-        torch.save(model.state_dict(), f'{pth}/{name}{modrun}.pth')
+        torch.save(model.state_dict(), f'{path}/{name}{modrun}.pth')
 
         
         losses = np.array([losses_train, losses_val])
-        with open(f"{pth}/metrics{modrun}.npy", "wb") as f:
+        with open(f"{path}/metrics{modrun}.npy", "wb") as f:
             np.save(f, losses)
 
         return model, losses
