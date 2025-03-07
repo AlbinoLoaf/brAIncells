@@ -54,6 +54,7 @@ class TrainNN():
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=w_decay)
 
         highest_train_accuracy = 0.0
+        highest_val_accuracy = 0.0
         
         losses_train = []; losses_val = []
 
@@ -94,15 +95,16 @@ class TrainNN():
             epoch_loss_val = running_loss_val / len(val_loader.dataset)
             epoch_accuracy_val = correct_val/total_val
             losses_val.append(epoch_loss_val)
-                
+            if epoch_accuracy_val> highest_val_accuracy:
+                  highest_val_accuracy = epoch_accuracy_val
             if epoch_accuracy > highest_train_accuracy:
                 highest_train_accuracy = epoch_accuracy
 
             if prints:
                 print(f"Epoch {epoch+1}/{epochs}, Train loss: {epoch_loss:.4f}, Train acc: {(epoch_accuracy*100):.2f}%" +
                      f"| Val loss: {epoch_loss_val:.4f}, Val acc: {(epoch_accuracy_val*100):.2f}%")
-
-        print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}")
+                  
+        print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}\nHighest val Accuracy {(highest_val_accuracy*100):.2f}")
         torch.save(model.state_dict(), f'{path}/{name}{modrun}.pth')
 
         
