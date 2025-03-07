@@ -64,6 +64,7 @@ class CKACalculator:
             """Centers the kernel matrix K."""
             n = K.size(0)
             H = torch.eye(n, device=K.device) - 1.0 / n * torch.ones((n, n), device=K.device)
+            H = H.double()
             return H @ K @ H
 
         def hsic(K: torch.Tensor, L: torch.Tensor) -> torch.Tensor:
@@ -78,8 +79,8 @@ class CKACalculator:
 
         for i, (name1, X) in enumerate(activations1.items()):
             for j, (name2, Y) in enumerate(activations2.items()):
-                K = gram_matrix(X.flatten(start_dim=1))
-                L = gram_matrix(Y.flatten(start_dim=1))
+                K = gram_matrix(X.flatten(start_dim=1).double())
+                L = gram_matrix(Y.flatten(start_dim=1).double())
 
                 hsic_XY = hsic(K, L)
                 hsic_XX = hsic(K, K)
