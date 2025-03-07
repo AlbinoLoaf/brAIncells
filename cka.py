@@ -14,7 +14,6 @@ class HookManager:
         self.activations = {}
         self.hooks = []
 
-        # Register hooks for layers that exist in the model
         existing_layers = {type(layer) for layer in model.modules()}
         valid_layers = tuple(layer for layer in layers_to_hook if layer in existing_layers)
 
@@ -58,39 +57,29 @@ class CKACalculator:
         activations1 = self.hook_manager1.get_activations()
         activations2 = self.hook_manager2.get_activations()
 
-        # Store module names for reference
         self.module_names_X = list(activations1.keys())
         self.module_names_Y = list(activations2.keys())
 
-        def gram_matrix(X): return X.matmul(X.t()) # Compute Gram matrix
+        def centering(K):
+            """Centers the kernel matrix K."""
+            n = K.size(0)
+            H = torch.eye(n, device=K.device) - 1.0 / n * torch.ones((n, n), device=K.device)
+            return H @ K @ H
 
         def hsic(K: torch.Tensor, L: torch.Tensor) -> torch.Tensor:
-            """ Batch-wise computation of HSIC. """
-            assert K.size() == L.size() and K.dim() == 3  # (B, N, N)
-            B, N, _ = K.shape
+            """Computes the HSIC measure."""
+            K, L = centering(K), centering(L)
+            return torch.trace(K @ L) / ((K.size(0) - 1) ** 2)
 
-            K, L = K.clone(), L.clone()
-            # K, L --> K~, L~ by setting diagonals to zero
-            K.diagonal(dim1=-1, dim2=-2).fill_(0)
-            L.diagonal(dim1=-1, dim2=-2).fill_(0)
-
-            KL = torch.bmm(K, L)
-            trace_KL = KL.diagonal(dim1=-1, dim2=-2).sum(-1).unsqueeze(-1).unsqueeze(-1)
-
-            middle_term = K.sum(dim=(-1, -2), keepdim=True) * L.sum(dim=(-1, -2), keepdim=True)
-            middle_term /= (N - 1) * (N - 2)
-
-            right_term = KL.sum(dim=(-1, -2), keepdim=True) * 2 / (N - 2)
-
-            hsic_value = (trace_KL + middle_term - right_term) / (N**2 - 3*N)
-            return hsic_value.squeeze(-1).squeeze(-1)
+        def gram_matrix(X):
+            return X @ X.t()
 
         cka_matrix = torch.zeros(len(activations1), len(activations2))
 
         for i, (name1, X) in enumerate(activations1.items()):
             for j, (name2, Y) in enumerate(activations2.items()):
-                K = gram_matrix(X.flatten(start_dim=1)).unsqueeze(0) 
-                L = gram_matrix(Y.flatten(start_dim=1)).unsqueeze(0)
+                K = gram_matrix(X.flatten(start_dim=1))
+                L = gram_matrix(Y.flatten(start_dim=1))
 
                 hsic_XY = hsic(K, L)
                 hsic_XX = hsic(K, K)
