@@ -49,7 +49,7 @@ class CKACalculator:
 
     @torch.no_grad()
     def calculate_cka_matrix(self):
-        for images, *_ in tqdm(self.dataloader, desc="Processing CKA"):
+        for images, *_ in tqdm(self.dataloader, desc="Processing CKA", disable=True):
             images = images.to(self.device)
             self.model1(images)
             self.model2(images)
