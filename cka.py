@@ -90,7 +90,7 @@ class CKACalculator:
                 hsic_XX = hsic(K, K)
                 hsic_YY = hsic(L, L)
 
-                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt())
+                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt()+ 1e-8)
         # Clear activations to free memory
         self.hook_manager1.clear()
         self.hook_manager2.clear()
