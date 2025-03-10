@@ -38,6 +38,25 @@ class HookManager:
             hook.remove()
         self.hooks = []
 
+
+
+def centering(K):
+        """Centers the kernel matrix K."""
+        n = K.size(0)
+        H = torch.eye(n, device=K.device,dtype=torch.double) - 1.0 / n * torch.ones((n, n), device=K.device,dtype=torch.double)
+        H = H.double()
+        return H @ K @ H
+
+
+def hsic(K: torch.Tensor, L: torch.Tensor) -> torch.Tensor:
+    """Computes the HSIC measure."""
+    K, L = centering(K), centering(L)
+    return torch.trace(K @ L) / ((K.size(0) - 1) ** 2 +1e-8)
+
+def gram_matrix(X):
+    return X @ X.t()
+
+
 class CKACalculator:
     def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, layers_to_hook=(nn.Conv2d, nn.Linear)):
 
@@ -60,21 +79,6 @@ class CKACalculator:
         self.module_names_X = list(activations1.keys())
         self.module_names_Y = list(activations2.keys())
 
-        def centering(K):
-            """Centers the kernel matrix K."""
-            n = K.size(0)
-            H = torch.eye(n, device=K.device) - 1.0 / n * torch.ones((n, n), device=K.device)
-            H = H.double()
-            return H @ K @ H
-
-        def hsic(K: torch.Tensor, L: torch.Tensor) -> torch.Tensor:
-            """Computes the HSIC measure."""
-            K, L = centering(K), centering(L)
-            return torch.trace(K @ L) / ((K.size(0) - 1) ** 2)
-
-        def gram_matrix(X):
-            return X @ X.t()
-
         cka_matrix = torch.zeros(len(activations1), len(activations2))
 
         for i, (name1, X) in enumerate(activations1.items()):
@@ -87,5 +91,10 @@ class CKACalculator:
                 hsic_YY = hsic(L, L)
 
                 cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt())
+        # Clear activations to free memory
+        self.hook_manager1.clear()
+        self.hook_manager2.clear()
+
 
         return cka_matrix
+    
