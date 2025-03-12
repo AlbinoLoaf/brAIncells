@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import wandb
 
 
 class TrainNN():
@@ -48,6 +49,7 @@ class TrainNN():
               numpy array where losses[0] is the training loss history and losses[1] 
               is the validation loss history
         '''
+
         model = model.to(self.device)
 
         criterion = nn.CrossEntropyLoss()
@@ -57,6 +59,17 @@ class TrainNN():
         highest_val_accuracy = 0.0
         
         losses_train = []; losses_val = []
+
+        run = wandb.init(
+            project = "testing",
+            name="dgcnn",
+            config={
+                "learning_rate":learning_rate,
+                "w_decay":w_decay,
+                "modrun":modrun, 
+                "epochs":epochs
+            }
+        )
 
         for epoch in range(epochs):
             model.train()
@@ -103,14 +116,25 @@ class TrainNN():
             if prints:
                 print(f"Epoch {epoch+1}/{epochs}, Train loss: {epoch_loss:.4f}, Train acc: {(epoch_accuracy*100):.2f}%" +
                      f"| Val loss: {epoch_loss_val:.4f}, Val acc: {(epoch_accuracy_val*100):.2f}%")
-                  
+            
+            
+            run.log({"train_loss":epoch_loss,
+                 "train accuracy":epoch_accuracy*100,
+                 "eval loss":epoch_loss_val,
+                 "eval acc":epoch_accuracy_val*100
+                 }, commit=True)
+            
         print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}\nHighest val Accuracy {(highest_val_accuracy*100):.2f}")
+
+        
         torch.save(model.state_dict(), f'{path}/{name}{modrun}.pth')
+
 
         
         losses = np.array([losses_train, losses_val])
         with open(f"{path}/metrics{modrun}.npy", "wb") as f:
             np.save(f, losses)
 
-        return model, losses
+        run.finish()
 
+        return model, losses
