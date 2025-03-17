@@ -1,16 +1,11 @@
-"""
-inspired by:Repo: https://github.com/numpee/CKA.pytorch
-
-"""
-
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from torcheeg.models.gnn.dgcnn import Chebynet
-from torcheeg.models.gnn.dgcnn import GraphConvolution
+#from torcheeg.models.gnn.dgcnn import Chebynet
+#from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
-    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d)):
+    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AvgPool2d)):
         self.activations = {}
         self.hooks = []
 
@@ -33,10 +28,10 @@ class HookManager:
         return self.activations
 
     def clear(self):
-        self.activations.clear()
+        #self.activations.clear()
         for hook in self.hooks:
             hook.remove()
-        self.hooks = []
+        #self.hooks = []
 
 
 
@@ -58,7 +53,7 @@ def gram_matrix(X):
 
 
 class CKACalculator:
-    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, layers_to_hook=(nn.Conv2d, nn.Linear)):
+    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, layers_to_hook=(nn.Conv2d, nn.Linear,nn.Conv1d,nn.AvgPool1d)):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model1, self.model2 = model1.to(self.device).eval(), model2.to(self.device).eval()
@@ -67,15 +62,24 @@ class CKACalculator:
         self.hook_manager2 = HookManager(self.model2, layers_to_hook)
 
     @torch.no_grad()
-    def calculate_cka_matrix(self):
-        for images, *_ in tqdm(self.dataloader, desc="Processing CKA", disable=True):
-            images = images.to(self.device)
-            self.model1(images)
-            self.model2(images)
+    def calculate_cka_matrix(self,data):        
+        #for images in tqdm(self.dataloader, desc="Processing CKA", disable=True):
+            # print(x)
+            # print(len(x))
+            # images = x.to(self.device)
+        # print(self.model1.training)
+        # print(self.model2.training)
+        self.model1(data)
+        self.model2(data)
 
         activations1 = self.hook_manager1.get_activations()
         activations2 = self.hook_manager2.get_activations()
 
+
+        if not activations1 or not activations2:
+            print("[ERROR] No activations were recorded. Check if the layers are hooked properly.")
+            return torch.zeros(0, 0) 
+        
         self.module_names_X = list(activations1.keys())
         self.module_names_Y = list(activations2.keys())
 
@@ -83,6 +87,7 @@ class CKACalculator:
 
         for i, (name1, X) in enumerate(activations1.items()):
             for j, (name2, Y) in enumerate(activations2.items()):
+                #print(f"i am doing something{i}")
                 K = gram_matrix(X.flatten(start_dim=1).double())
                 L = gram_matrix(Y.flatten(start_dim=1).double())
 
@@ -90,11 +95,10 @@ class CKACalculator:
                 hsic_XX = hsic(K, K)
                 hsic_YY = hsic(L, L)
 
-                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt()+ 1e-8)
+                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt())
         # Clear activations to free memory
         self.hook_manager1.clear()
         self.hook_manager2.clear()
 
 
         return cka_matrix
-    
