@@ -1,11 +1,14 @@
+#inspired by:Repo: https://github.com/numpee/CKA.pytorch
+
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-#from torcheeg.models.gnn.dgcnn import Chebynet
-#from torcheeg.models.gnn.dgcnn import GraphConvolution
+from torcheeg.models.gnn.dgcnn import Chebynet
+from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
-    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AvgPool2d)):
+    def __init__(self, model, 
+                 layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d)):
         self.activations = {}
         self.hooks = []
 
@@ -28,7 +31,7 @@ class HookManager:
         return self.activations
 
     def clear(self):
-        #self.activations.clear()
+        self.activations.clear()
         for hook in self.hooks:
             hook.remove()
         #self.hooks = []
@@ -53,7 +56,8 @@ def gram_matrix(X):
 
 
 class CKACalculator:
-    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, layers_to_hook=(nn.Conv2d, nn.Linear,nn.Conv1d,nn.AvgPool1d)):
+    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, 
+                 layers_to_hook=(nn.Conv2d, nn.Linear,nn.Conv1d)):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model1, self.model2 = model1.to(self.device).eval(), model2.to(self.device).eval()
