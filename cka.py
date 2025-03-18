@@ -1,7 +1,4 @@
-"""
-inspired by:Repo: https://github.com/numpee/CKA.pytorch
-
-"""
+#inspired by:Repo: https://github.com/numpee/CKA.pytorch
 
 import torch
 import torch.nn as nn
@@ -10,7 +7,8 @@ from torcheeg.models.gnn.dgcnn import Chebynet
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
-    def __init__(self, model, layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d)):
+    def __init__(self, model, 
+                 layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d)):
         self.activations = {}
         self.hooks = []
 
@@ -36,15 +34,15 @@ class HookManager:
         self.activations.clear()
         for hook in self.hooks:
             hook.remove()
-        self.hooks = []
+        #self.hooks = []
 
 
 
 def centering(K):
         """Centers the kernel matrix K."""
         n = K.size(0)
-        H = torch.eye(n, device=K.device,dtype=torch.double) - 1.0 / n * torch.ones((n, n), device=K.device,dtype=torch.double)
-        H = H.double()
+        H = torch.eye(n, device=K.device) - 1.0 / n * torch.ones((n, n), device=K.device,)
+        H = H
         return H @ K @ H
 
 
@@ -58,7 +56,8 @@ def gram_matrix(X):
 
 
 class CKACalculator:
-    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, layers_to_hook=(nn.Conv2d, nn.Linear)):
+    def __init__(self, model1: nn.Module, model2: nn.Module, dataloader, 
+                 layers_to_hook=(nn.Conv2d, nn.Linear,nn.Conv1d)):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model1, self.model2 = model1.to(self.device).eval(), model2.to(self.device).eval()
@@ -67,15 +66,37 @@ class CKACalculator:
         self.hook_manager2 = HookManager(self.model2, layers_to_hook)
 
     @torch.no_grad()
-    def calculate_cka_matrix(self):
-        for images, *_ in tqdm(self.dataloader, desc="Processing CKA", disable=True):
-            images = images.to(self.device)
-            self.model1(images)
-            self.model2(images)
+    def calculate_cka_matrix(self,data):     
+        """
+        Calculates the cka for the model attatched, returns a cka matrix (tensor)
+
+        ....
+
+        Parameters 
+        -----
+        self : class
+            Passing the class to the function
+        data : tensor matrix floats
+            a minimum 500 datapoint longs dataset do not cut off. this function will handle all manipulations it needs
+
+        Returns
+        ----
+        cka_matrix : Tensor 
+            Matrix of floats for the CKA matrix 
+        """   
+        x_data = torch.stack([data[i][0] for i in range(len(data))])
+        x_data = x_data[:500]
+        self.model1(x_data)
+        self.model2(x_data)
 
         activations1 = self.hook_manager1.get_activations()
         activations2 = self.hook_manager2.get_activations()
 
+
+        if not activations1 or not activations2:
+            print("[ERROR] No activations were recorded. Check if the layers are hooked properly.")
+            return torch.zeros(0, 0) 
+        
         self.module_names_X = list(activations1.keys())
         self.module_names_Y = list(activations2.keys())
 
@@ -83,18 +104,17 @@ class CKACalculator:
 
         for i, (name1, X) in enumerate(activations1.items()):
             for j, (name2, Y) in enumerate(activations2.items()):
-                K = gram_matrix(X.flatten(start_dim=1).double())
-                L = gram_matrix(Y.flatten(start_dim=1).double())
+                K = gram_matrix(X.flatten(start_dim=1))
+                L = gram_matrix(Y.flatten(start_dim=1))
 
                 hsic_XY = hsic(K, L)
                 hsic_XX = hsic(K, K)
                 hsic_YY = hsic(L, L)
 
-                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt()+ 1e-8)
+                cka_matrix[i, j] = hsic_XY / (hsic_XX.sqrt() * hsic_YY.sqrt())
         # Clear activations to free memory
         self.hook_manager1.clear()
         self.hook_manager2.clear()
 
 
         return cka_matrix
-    
