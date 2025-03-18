@@ -41,8 +41,8 @@ class HookManager:
 def centering(K):
         """Centers the kernel matrix K."""
         n = K.size(0)
-        H = torch.eye(n, device=K.device,dtype=torch.double) - 1.0 / n * torch.ones((n, n), device=K.device,dtype=torch.double)
-        H = H.double()
+        H = torch.eye(n, device=K.device) - 1.0 / n * torch.ones((n, n), device=K.device,)
+        H = H
         return H @ K @ H
 
 
@@ -66,15 +66,28 @@ class CKACalculator:
         self.hook_manager2 = HookManager(self.model2, layers_to_hook)
 
     @torch.no_grad()
-    def calculate_cka_matrix(self,data):        
-        #for images in tqdm(self.dataloader, desc="Processing CKA", disable=True):
-            # print(x)
-            # print(len(x))
-            # images = x.to(self.device)
-        # print(self.model1.training)
-        # print(self.model2.training)
-        self.model1(data)
-        self.model2(data)
+    def calculate_cka_matrix(self,data):     
+        """
+        Calculates the cka for the model attatched, returns a cka matrix (tensor)
+
+        ....
+
+        Parameters 
+        -----
+        self : class
+            Passing the class to the function
+        data : tensor matrix floats
+            a minimum 500 datapoint longs dataset do not cut off. this function will handle all manipulations it needs
+
+        Returns
+        ----
+        cka_matrix : Tensor 
+            Matrix of floats for the CKA matrix 
+        """   
+        x_data = torch.stack([data[i][0] for i in range(len(data))])
+        x_data = x_data[:500]
+        self.model1(x_data)
+        self.model2(x_data)
 
         activations1 = self.hook_manager1.get_activations()
         activations2 = self.hook_manager2.get_activations()
@@ -91,9 +104,8 @@ class CKACalculator:
 
         for i, (name1, X) in enumerate(activations1.items()):
             for j, (name2, Y) in enumerate(activations2.items()):
-                #print(f"i am doing something{i}")
-                K = gram_matrix(X.flatten(start_dim=1).double())
-                L = gram_matrix(Y.flatten(start_dim=1).double())
+                K = gram_matrix(X.flatten(start_dim=1))
+                L = gram_matrix(Y.flatten(start_dim=1))
 
                 hsic_XY = hsic(K, L)
                 hsic_XX = hsic(K, K)
