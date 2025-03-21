@@ -1,9 +1,6 @@
-#inspired by:Repo: https://github.com/numpee/CKA.pytorch
-
+import numpy as np
 import torch
 import torch.nn as nn
-from tqdm import tqdm
-from torcheeg.models.gnn.dgcnn import Chebynet
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
@@ -118,3 +115,11 @@ class CKACalculator:
 
 
         return cka_matrix
+    
+    def test_cka(self, num_test,data):
+        Matrix_field_val = np.zeros(num_test)
+        for i in range(num_test):
+            cka_output = self.calculate_cka_matrix(self,data)
+            Matrix_field_val[i]=cka_output[0][4]
+        print(f"Standard deviation: {np.std(Matrix_field_val)}")
+        print(f"Array max: {max(Matrix_field_val)}\nArray min: {min(Matrix_field_val)}\nArray mean: {np.mean(Matrix_field_val)}")
