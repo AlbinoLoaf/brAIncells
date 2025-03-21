@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import utils as U
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
@@ -123,3 +124,14 @@ class CKACalculator:
             Matrix_field_val[i]=cka_output[0][4]
         print(f"Standard deviation: {np.std(Matrix_field_val)}")
         print(f"Array max: {max(Matrix_field_val)}\nArray min: {min(Matrix_field_val)}\nArray mean: {np.mean(Matrix_field_val)}")
+
+def cka_all_models(mods,modruns,data,plot=False):
+    cka_all = []
+    for i in range(modruns-1):
+        for j in range(i+1,modruns):
+            calculator = CKACalculator(model1=mods[i][0], model2=mods[j][0], dataloader=train_loader,
+                                    layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d))
+            cka_output = calculator.calculate_cka_matrix(data)
+            cka_all.append(cka_output)
+            if plot:
+                U.plot_matrix(f'CKA Matrix: Model {i} vs Model {j}',cka_output.cpu().numpy(),calculator.module_names_X,calculator.module_names_Y)
