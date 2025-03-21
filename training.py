@@ -11,8 +11,8 @@ class TrainNN():
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def train_model(self, model, train_loader, val_loader, learning_rate, 
-                    path,name,w_decay=1e-4, epochs=100, prints=True, modrun=0):
+    def train_model(self, model, train_loader, learning_rate, 
+                    path,name,has_val_set=False,val_loader=None,w_decay=1e-4, epochs=100, prints=True, modrun=0):
         '''
         Trains a given torch.nn model
         
@@ -96,42 +96,57 @@ class TrainNN():
             epoch_accuracy = correct/total
             losses_train.append(epoch_loss)
             
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                
-                running_loss_val += loss.item() * inputs.size(0)
-                _, predicted = torch.max(outputs, 1)
-                total_val += labels.size(0)
-                correct_val += (predicted == labels).sum().item()
-                
-            epoch_loss_val = running_loss_val / len(val_loader.dataset)
-            epoch_accuracy_val = correct_val/total_val
-            losses_val.append(epoch_loss_val)
-            if epoch_accuracy_val> highest_val_accuracy:
-                  highest_val_accuracy = epoch_accuracy_val
+            if has_val_set:
+                for inputs, labels in val_loader:
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+
+                    running_loss_val += loss.item() * inputs.size(0)
+                    _, predicted = torch.max(outputs, 1)
+                    total_val += labels.size(0)
+                    correct_val += (predicted == labels).sum().item()
+
+                epoch_loss_val = running_loss_val / len(val_loader.dataset)
+                epoch_accuracy_val = correct_val/total_val
+                losses_val.append(epoch_loss_val)
+                if epoch_accuracy_val> highest_val_accuracy:
+                      highest_val_accuracy = epoch_accuracy_val
+                        
             if epoch_accuracy > highest_train_accuracy:
                 highest_train_accuracy = epoch_accuracy
 
             if prints:
-                print(f"Epoch {epoch+1}/{epochs}, Train loss: {epoch_loss:.4f}, Train acc: {(epoch_accuracy*100):.2f}%" +
-                     f"| Val loss: {epoch_loss_val:.4f}, Val acc: {(epoch_accuracy_val*100):.2f}%")
+                if has_val_set:
+                    print(f"Epoch {epoch+1}/{epochs}, Train loss: {epoch_loss:.4f}, Train acc: {(epoch_accuracy*100):.2f}%" +
+                         f"| Val loss: {epoch_loss_val:.4f}, Val acc: {(epoch_accuracy_val*100):.2f}%")
+                else:
+                    print(f"Epoch {epoch+1}/{epochs}, Train loss: {epoch_loss:.4f}, Train acc: {(epoch_accuracy*100):.2f}") 
             
-            
-            run.log({"train_loss":epoch_loss,
-                 "train accuracy":epoch_accuracy*100,
-                 "eval loss":epoch_loss_val,
-                 "eval acc":epoch_accuracy_val*100
-                 }, commit=True)
-            
-        print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}\nHighest val Accuracy {(highest_val_accuracy*100):.2f}")
+            if has_val_set:
+                run.log({"train_loss":epoch_loss,
+                     "train accuracy":epoch_accuracy*100,
+                     "eval loss":epoch_loss_val,
+                     "eval acc":epoch_accuracy_val*100
+                     }, commit=True)
+            else:
+                run.log({"train_loss":epoch_loss,
+                     "train accuracy":epoch_accuracy*100,
+                     }, commit=True)
+        
+        
+        if has_val_set:
+            print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}\nHighest val Accuracy {(highest_val_accuracy*100):.2f}")
+        else:
+            print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}")
 
         
         torch.save(model.state_dict(), f'{path}/{name}{modrun}.pth')
 
+        if has_val_set:
+            losses = np.array([losses_train, losses_val])
+        else:
+            losses = np.array(losses_train)
 
-        
-        losses = np.array([losses_train, losses_val])
         with open(f"{path}/metrics{modrun}.npy", "wb") as f:
             np.save(f, losses)
 
