@@ -1,21 +1,13 @@
-import os
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import networkx as nx
-
 #torch imports 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader,TensorDataset
-from torcheeg.io.eeg_signal import EEGSignalIO
-from torcheeg.models import DGCNN
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 from sklearn.model_selection import train_test_split
-from torcheeg import transforms
 from torcheeg.models.gnn.dgcnn import GraphConvolution
-from cka import HookManager, CKACalculator
+from cka import HookManager
 
 
 #Matrix 
@@ -237,4 +229,23 @@ def visualize_adj_mat(adj_mat):
     node_labels = np.arange(1, num_nodes + 1)
     plot_matrix("Adjecency matrix",adj_mat,node_labels,node_labels,cbarlabel="Edge strength",cellvalues=False)
 
+def graph_plot(mods,plot_func,row,col):
+    plt.figure(figsize=(10, 5))
+    pos= nx.spring_layout(nx.from_numpy_array(get_adj_mat(mods[0][0]).numpy()),seed=7)
 
+    for i in range(len(mods)):
+        G=nx.from_numpy_array(get_adj_mat(mods[i][0]).numpy())
+        plot_func(f"G{i+1}",G,row,col,i+1,pos)
+    plt.show()
+
+
+def graph_visual(title,G,row,col,idx,pos):
+    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
+    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
+
+    fig = plt.subplot(row, col, idx)
+    nx.draw_networkx_nodes(G, pos)
+    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")
+    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, alpha=0.5, edge_color="black")
+    plt.title(title)
+    return fig
