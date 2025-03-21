@@ -74,6 +74,23 @@ def check_isomorphism(adj1, adj2):
     
     return nx.vf2pp_is_isomorphic(G1, G2, node_label=None)
 
+def get_graph_edit_dist(adj1, adj2):
+    G1 = nx.from_numpy_array(adj1.numpy())
+    G2 = nx.from_numpy_array(adj2.numpy())
+    g_dist = nx.graph_edit_distance(G1, G2)
+    return g_dist
+
+
+def get_activations(model,data, layer_type=[GraphConvolution]):
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device).eval()
+    hook_manager = HookManager(model, layer_type)
+    model(data) # apparently a forward pass needs to be done for hooks to run
+                   # this is just a placeholder so hooks get registered
+    activations = hook_manager.get_activations()
+    return activations
+
 
 #visualisation tools
 def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
@@ -135,3 +152,5 @@ def visualize_adj_mat(adj_mat):
     num_nodes = adj_mat.shape[0]
     node_labels = np.arange(1, num_nodes + 1)
     plot_matrix("Adjecency matrix",adj_mat,node_labels,node_labels,cbarlabel="Edge strength",cellvalues=False)
+
+

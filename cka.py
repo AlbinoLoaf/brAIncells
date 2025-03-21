@@ -120,18 +120,21 @@ class CKACalculator:
     def test_cka(self, num_test,data):
         Matrix_field_val = np.zeros(num_test)
         for i in range(num_test):
-            cka_output = self.calculate_cka_matrix(self,data)
+            cka_output = self.calculate_cka_matrix(data)
+            print(cka_output)
             Matrix_field_val[i]=cka_output[0][4]
         print(f"Standard deviation: {np.std(Matrix_field_val)}")
         print(f"Array max: {max(Matrix_field_val)}\nArray min: {min(Matrix_field_val)}\nArray mean: {np.mean(Matrix_field_val)}")
 
-def cka_all_models(mods,modruns,data,plot=False):
+def cka_all_models(mods,modruns,data,train_loader,plot=False):
     cka_all = []
     for i in range(modruns-1):
         for j in range(i+1,modruns):
             calculator = CKACalculator(model1=mods[i][0], model2=mods[j][0], dataloader=train_loader,
                                     layers_to_hook=(nn.Conv2d, nn.Linear, nn.AdaptiveAvgPool2d, GraphConvolution, nn.BatchNorm1d))
             cka_output = calculator.calculate_cka_matrix(data)
+            calculator.test_cka(10,data)
             cka_all.append(cka_output)
             if plot:
                 U.plot_matrix(f'CKA Matrix: Model {i} vs Model {j}',cka_output.cpu().numpy(),calculator.module_names_X,calculator.module_names_Y)
+    return cka_all
