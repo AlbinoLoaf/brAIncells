@@ -229,7 +229,23 @@ def visualize_adj_mat(adj_mat):
     node_labels = np.arange(1, num_nodes + 1)
     plot_matrix("Adjecency matrix",adj_mat,node_labels,node_labels,cbarlabel="Edge strength",cellvalues=False)
 
+    
 def graph_plot(mods,plot_func,row,col):
+    """
+    Plot multiple graphs (using a given plotting function) in one figure using subplots
+    
+    ...
+    
+    Parameters
+    -----
+        mods: list of torch.nn models
+        plot_func: function
+            Function to plot graphs with
+        row: int
+            Number of rows in the subplot
+        col: int
+            Number of columns in the subplot
+    """
     plt.figure(figsize=(10, 5))
     pos= nx.spring_layout(nx.from_numpy_array(get_adj_mat(mods[0][0]).numpy()),seed=7)
 
@@ -240,6 +256,31 @@ def graph_plot(mods,plot_func,row,col):
 
 
 def graph_visual(title,G,row,col,idx,pos):
+    """
+    Visualize networkx graph
+    
+    ...
+    
+    Parameters
+    -----
+        title: string
+            Title of plot
+        G: nx.Graph
+            Graph object constructed from adjacency matrix
+        row: int
+            Number of rows in the subplot
+        col: int
+            Number of columns in the subplot
+        idx: int
+            Index of current plot in the figure (which subplot is it in the figure)
+        pos: int
+            Graph layout (nx.spring_layout) - workaround so we can have the same 
+            layout for all graphs
+    
+    Returns
+    -----
+        fig - plt.subplot containing plot for given graph
+    """
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
 
@@ -249,3 +290,4 @@ def graph_visual(title,G,row,col,idx,pos):
     nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, alpha=0.5, edge_color="black")
     plt.title(title)
     return fig
+
