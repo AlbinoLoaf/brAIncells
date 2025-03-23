@@ -1,9 +1,54 @@
 import networkx as nx 
+import torch
+import numpy as np
 from torcheeg.models.gnn.dgcnn import GraphConvolution
-from cka import HookManager
+from utils.cka import HookManager
 
-# Networkx utils
-def check_isomorphism(adj1, adj2):
+
+# Networkx utils, Graph utils
+def make_graph(adjacency_matrix):
+    """
+    Creates a NetworkX graph from an adjacency matrix.
+    
+    Parameters:
+        adjacency_matrix : torch.Tensor/np.ndarray
+          adjacency matrix representation
+    
+    Returns:
+        networkx.Graph: graph created from adjacency matrix
+    
+    Raises:
+        TypeError: if input is neither torch.Tensor nor np.ndarray
+    """
+    if isinstance(adjacency_matrix, torch.Tensor):
+        return nx.from_numpy_array(adjacency_matrix.numpy())
+    elif isinstance(adjacency_matrix, np.ndarray):
+        return nx.from_numpy_array(adjacency_matrix)
+    else:
+        raise TypeError("adjacency_matrix must be a torch.Tensor or np.ndarray.")
+
+def get_barycenter(adj):
+    """
+    Calculates barycenter of graph - the node which minimizes its distance from all other nodes
+    AKA the center of the graph
+    If multiple nodes tie for the smallest distance, then all of them are returned (as a list)
+    
+     Parameters
+    -----------
+    adj: torch matrix
+        Adjacency matrix of graph
+        
+    Returns
+    -----
+    bar: list of ints
+        The node id(s) that minimize the distance to all other nodes
+    """
+    
+    G = nx.from_numpy_array(adj.numpy())
+    bar = nx.barycenter(G)
+    return bar
+
+def check_isomorphism(G1, G2):
     """
     Check if two graphs are isomorphic ie structurally the same
     
@@ -19,23 +64,18 @@ def check_isomorphism(adj1, adj2):
     bool
         Whether the two graphs are isomorphic
     """
-
-    
-    G1 = nx.from_numpy_array(adj1.numpy())
-    G2 = nx.from_numpy_array(adj2.numpy())
-    
     return nx.vf2pp_is_isomorphic(G1, G2, node_label=None)
 
-def get_graph_edit_dist(adj1, adj2):
+def get_graph_edit_dist(G1, G2):
     """
     Get graph edit distance of two graphs
     
     Parameters
     -----------
-    adj1: torch matrix
-        Adjacency matrix of first graph
-    adj2: torch matrix
-        Adjacency matrix of second graph
+    adj1: networkx graph
+        The one graph bassed on an adjacency matrix 
+    adj2: networkx graph
+        The other graph bassed on an adjacency matrix 
         
     Returns
     -----
@@ -43,19 +83,17 @@ def get_graph_edit_dist(adj1, adj2):
         Graph edit distance of the two graphs
 
     """
-    G1 = nx.from_numpy_array(adj1.numpy())
-    G2 = nx.from_numpy_array(adj2.numpy())
     g_dist = nx.graph_edit_distance(G1, G2)
     return g_dist
 
-def get_simrank_similarity(adj):
+def get_simrank_similarity(G):
     """
     Get simrank similarity of nodes in a graph
     
     Parameters
     -----------
-    adj: torch matrix
-        Adjacency matrix of graph
+    adj: Networkx graph
+        Graph made from an adjacency matrix 
         
     Returns
     -----
@@ -63,7 +101,6 @@ def get_simrank_similarity(adj):
         Simrank similarity of each pair of two nodes
     """
     
-    G = nx.from_numpy_array(adj.numpy())
     return nx.simrank_similarity(G)
 
 

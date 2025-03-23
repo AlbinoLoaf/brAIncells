@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import utils as U
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 
 class HookManager:
