@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 from torcheeg import transforms
+from sklearn.model_selection import train_test_split
 
 #Preprocessing
 def band_preprocess(X, preprocessed_data_path):
@@ -48,3 +49,14 @@ def band_preprocess(X, preprocessed_data_path):
     return X_bde
 
 
+def split_data(X, y, has_val_set=False, seed=42):
+    
+    if has_val_set:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=seed, stratify=y)
+        X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=seed)
+        
+        return (X_train, y_train, X_val, y_val, X_test, y_test)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
+
+        return (X_train, y_train, X_test, y_test)
