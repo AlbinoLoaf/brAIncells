@@ -80,7 +80,7 @@ def graph_plot(mods,plot_func,row,col):
         col: int
             Number of columns in the subplot
     """
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(10,10))
     pos= nx.spring_layout(nx.from_numpy_array(get_adj_mat(mods[0][0]).numpy()),seed=7)
 
     for i in range(len(mods)):
