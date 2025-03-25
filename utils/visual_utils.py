@@ -64,7 +64,7 @@ def visualize_adj_mat(adj_mat):
     plot_matrix("Adjecency matrix",adj_mat,node_labels,node_labels,cbarlabel="Edge strength",cellvalues=False)
 
     
-def graph_plot(mods,plot_func,row,col):
+def graph_plot(adj,plot_func,row,col):
     """
     Plot multiple graphs (using a given plotting function) in one figure using subplots
     
@@ -72,7 +72,7 @@ def graph_plot(mods,plot_func,row,col):
     
     Parameters
     -----
-        mods: list of torch.nn models
+        mods: list of adjacency matrix
         plot_func: function
             Function to plot graphs with
         row: int
@@ -81,10 +81,11 @@ def graph_plot(mods,plot_func,row,col):
             Number of columns in the subplot
     """
     plt.figure(figsize=(10,10))
-    pos= nx.spring_layout(nx.from_numpy_array(get_adj_mat(mods[0][0]).numpy()),seed=7)
+    pos= nx.spring_layout(nx.from_numpy_array(adj[0].numpy()),seed=7)
 
-    for i in range(len(mods)):
-        G=nx.from_numpy_array(get_adj_mat(mods[i][0]).numpy())
+    for i in range(len(adj)):
+        assert np.array_equal(adj[i], adj[i].T), "The adjacency is not symetric"
+        G=nx.from_numpy_array(adj[i].numpy())
         plot_func(f"G{i+1}",G,row,col,i+1,pos)
     plt.show()
 
@@ -117,7 +118,7 @@ def graph_visual(title,G,row,col,idx,pos):
     """
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
-    
+
     fig = plt.subplot(row, col, idx)
     nx.draw_networkx_nodes(G, pos)
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")

@@ -27,9 +27,19 @@ def make_graph(adjacency_matrix):
     else:
         raise TypeError("adjacency_matrix must be a torch.Tensor or np.ndarray.")
     
-def make_binary_graph(adjacency_matrix):
-    adjacency_matrix[adjacency_matrix < 0.5] = int(0.0)
-    adjacency_matrix[adjacency_matrix > 0.49] = int(1.0)
+def make_binary_graph(adjacency_matrix,thresh=0.5):
+    """
+    Creates a binary networkX graph from an adjacency matrix where all edge under the threshold are 0 and the rest are 1
+        
+    Parameters:
+        adjacency_matrix : torch.Tensor/
+          adjacency matrix representation
+    
+    Returns:
+        networkx.Graph: graph created from adjacency matrix
+    """
+    adjacency_matrix[adjacency_matrix < thresh] = 0.0
+    adjacency_matrix[adjacency_matrix >= thresh] =1.0
     return make_graph(adjacency_matrix), adjacency_matrix
 
 def get_barycenter(adj):
