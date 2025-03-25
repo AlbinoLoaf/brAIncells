@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import wandb
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
 
 def threshold(mat, thresh=0.2):
     """ 
@@ -52,7 +55,65 @@ def get_adj_mat(model, thresh=0.2):
     A=threshold(A.detach(),thresh)
     return A
 
+def get_preds(model, X):
+    _, preds = torch.max(model(X), 1)
+    return preds.detach().numpy()
 
+def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None):
+    
+    preds_train = get_preds(model, X_train)
+    preds_test = get_preds(model, X_test)
+    
+    labels = ["feet","left_hand","right_hand","tongue"]
+    
+    if X_val != None:
+        preds_val = get_preds(model, X_val)
+        y_val_npy = y_val.numpy()
+        acc_val = accuracy_score(y_val_npy, preds_val)
+        f1_val = f1_score(y_val_npy, preds_val, average="macro")
+        print(f"Acc val: {acc_val}")
+        print(f"F1 val: {f1_val}")
+        
+        conf_mat_val = confusion_matrix(y_val, preds_val)
+        disp_val = ConfusionMatrixDisplay(confusion_matrix=conf_mat_val, display_labels=labels)
+
+        ax = disp_val.plot()
+        ax.ax_.set_title("Confusion matrix - Validation set")
+
+        plt.show()
+        
+    y_train_npy = y_train.numpy()
+    y_test_npy = y_test.numpy()
+    
+    acc_train = accuracy_score(y_train_npy, preds_train)
+    acc_test = accuracy_score(y_test_npy, preds_test)
+    
+    f1_train = f1_score(y_train_npy, preds_train, average="macro")
+    f1_test = f1_score(y_test_npy, preds_test, average="macro")
+    
+    print(f"Acc train: {acc_train}")
+    print(f"Acc test: {acc_test}")
+    
+    print(f"F1 train: {f1_train}")
+    print(f"F1 test: {f1_test}")
+    
+    
+    conf_mat_train = confusion_matrix(y_train, preds_train)
+    disp_train = ConfusionMatrixDisplay(confusion_matrix=conf_mat_train, display_labels=labels)
+
+    ax = disp_train.plot()
+    ax.ax_.set_title("Confusion matrix - Training set")
+
+    plt.show()
+    
+    conf_mat_test = confusion_matrix(y_test, preds_test)
+    disp_test = ConfusionMatrixDisplay(confusion_matrix=conf_mat_test, display_labels=labels)
+
+    # Plot and set title
+    ax = disp_test.plot()  # returns (figure, axes)
+    ax.ax_.set_title("Confusion matrix - Test set")
+
+    plt.show()
 
 class TrainNN():
     
