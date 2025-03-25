@@ -38,8 +38,8 @@ def get_adj_mat(model, thresh=0.2):
 
     Parameters
     -----
-    model : DGCNN   
-        nural network model with a learned adjecency matrix
+    model : torcheeg.models DGCNN 
+        neural network model with a learned adjecency matrix
     thresh : float
         Threshold for the cut off
 
@@ -56,11 +56,40 @@ def get_adj_mat(model, thresh=0.2):
     return A
 
 def get_preds(model, X):
+    """
+    Get predicted class from predicted class probabilities
+    
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X: torch.FloatTensor
+        Data to predict classes for
+    
+    Returns
+    -----
+    preds: np.ndarray
+        Predicted class int labels
+    """
     _, preds = torch.max(model(X), 1)
     return preds.detach().numpy()
 
 def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None):
+    """
+    Display model metrics accuracy, f1 score and confusion matrix for the training, validation
+    (if applicable) and test sets
     
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X_train, X_val, X_test: torch.FloatTensor
+        Input features for the train, validation (if applicable) and test sets
+    y_train, y_val, y_test: torch.FloatTensor
+        Output labels for the train, validation (if applicable) and test sets
+    """
     preds_train = get_preds(model, X_train)
     preds_test = get_preds(model, X_test)
     
