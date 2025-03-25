@@ -26,6 +26,11 @@ def make_graph(adjacency_matrix):
         return nx.from_numpy_array(adjacency_matrix)
     else:
         raise TypeError("adjacency_matrix must be a torch.Tensor or np.ndarray.")
+    
+def make_binary_graph(adjacency_matrix):
+    adjacency_matrix[adjacency_matrix < 0.5] = int(0.0)
+    adjacency_matrix[adjacency_matrix > 0.49] = int(1.0)
+    return make_graph(adjacency_matrix), adjacency_matrix
 
 def get_barycenter(adj):
     """
@@ -48,7 +53,7 @@ def get_barycenter(adj):
     bar = nx.barycenter(G)
     return bar
 
-def check_isomorphism(G1, G2):
+def check_not_isomorphism(G1, G2):
     """
     Check if two graphs are isomorphic ie structurally the same
     
@@ -64,7 +69,7 @@ def check_isomorphism(G1, G2):
     bool
         Whether the two graphs are isomorphic
     """
-    return nx.vf2pp_is_isomorphic(G1, G2, node_label=None)
+    return not nx.vf2pp_is_isomorphic(G1, G2, node_label=None)
 
 def get_graph_edit_dist(G1, G2):
     """

@@ -19,7 +19,7 @@ def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
         A list of strings for the label marks
     ylabel : list
         A list of strings for the label marks
-    cbarlabel : string
+    cbarlabel : stringvu.visualize_adj_mat
         default = "", set if cbar name is needed
     cellvalues : bool
         default = true, if fase will stop showing the valies for each matrix cell
@@ -117,7 +117,7 @@ def graph_visual(title,G,row,col,idx,pos):
     """
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
-
+    
     fig = plt.subplot(row, col, idx)
     nx.draw_networkx_nodes(G, pos)
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")
