@@ -75,7 +75,7 @@ def get_preds(model, X):
     _, preds = torch.max(model(X), 1)
     return preds.detach().numpy()
 
-def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None):
+def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None,plots=True):
     """
     Display model metrics accuracy, f1 score and confusion matrix for the training, validation
     (if applicable) and test sets
@@ -126,23 +126,23 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
     print(f"F1 train: {f1_train}")
     print(f"F1 test: {f1_test}")
     
-    
-    conf_mat_train = confusion_matrix(y_train, preds_train)
-    disp_train = ConfusionMatrixDisplay(confusion_matrix=conf_mat_train, display_labels=labels)
+    if plots:
+        conf_mat_train = confusion_matrix(y_train, preds_train)
+        disp_train = ConfusionMatrixDisplay(confusion_matrix=conf_mat_train, display_labels=labels)
 
-    ax = disp_train.plot()
-    ax.ax_.set_title("Confusion matrix - Training set")
+        ax = disp_train.plot()
+        ax.ax_.set_title("Confusion matrix - Training set")
 
-    plt.show()
-    
-    conf_mat_test = confusion_matrix(y_test, preds_test)
-    disp_test = ConfusionMatrixDisplay(confusion_matrix=conf_mat_test, display_labels=labels)
+        plt.show()
+        
+        conf_mat_test = confusion_matrix(y_test, preds_test)
+        disp_test = ConfusionMatrixDisplay(confusion_matrix=conf_mat_test, display_labels=labels)
 
-    # Plot and set title
-    ax = disp_test.plot()  # returns (figure, axes)
-    ax.ax_.set_title("Confusion matrix - Test set")
+        # Plot and set title
+        ax = disp_test.plot()  # returns (figure, axes)
+        ax.ax_.set_title("Confusion matrix - Test set")
 
-    plt.show()
+        plt.show()
 
 class TrainNN():
     
