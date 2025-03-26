@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 from utils.model_utils import get_adj_mat
+import pandas as pd
 #visualisation tools
 def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
     """
@@ -119,10 +120,15 @@ def graph_visual(title,G,row,col,idx,pos):
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
 
+    # get node labels 
+    node_labels = pd.read_csv("node_names.tsv", sep="\t")
+    node_labels = list(node_labels['name'])
+    label_dict = {node: label for node, label in zip(G.nodes(), node_labels)}
+
     fig = plt.subplot(row, col, idx)
-    nx.draw_networkx_nodes(G, pos)
+    nx.draw_networkx_nodes(G, pos, node_color="lightblue")
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")
     nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, alpha=0.5, edge_color="black")
+    nx.draw_networkx_labels(G, pos, labels=label_dict, font_size=10, font_color="black")
     plt.title(title)
     return fig
-
