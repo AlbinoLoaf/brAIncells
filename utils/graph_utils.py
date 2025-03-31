@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 from utils.cka import HookManager
+import utils.model_utils as mu 
 
 
 # Networkx utils, Graph utils
@@ -141,3 +142,46 @@ def get_activations(model,data, layer_type=[GraphConvolution]):
                    # this is just a placeholder so hooks get registered
     activations = hook_manager.get_activations()
     return activations
+
+
+def get_graph_metrics(mod_list, prints=True):
+
+    barycenters = []; simrank_similarities = []
+    
+    # Barycenters and simrank similarity
+    for i in range(len(mod_list)):
+        
+        curr_adj = mu.get_adj_mat(mod_list[i][0])
+        curr_barycenter = get_barycenter(curr_adj)
+        barycenters.append(curr_barycenter)
+        G = make_graph(curr_adj)
+        sim = get_simrank_similarity(G) # not printing because it's a huge dict of all node pair simiarities
+        simrank_similarities.append(sim)
+        
+        if prints:
+            print(f"---For model idx {i}---")
+            print(f"Barycenter: {curr_barycenter}")
+    
+    isomorphism_checks = []; geds = []
+    graphs = [make_graph(mu.get_adj_mat(mod_list[i][0])) for i in range(len(mod_list))]
+    
+    # Isomorphism check and graph edit distance
+    for i in range(len(mod_list)):
+        for j in range(i+1, len(mod_list)):
+            G1 = graphs[i]
+            G2 = graphs[j]
+            
+            is_isomorphic = not check_not_isomorphism(G1, G2)
+            isomorphism_checks.append(is_isomorphic)
+            if prints:
+                print(f"---Graphs for model {i} and model {j}---")
+                print(f"Is isomorphic: {is_isomorphic}")
+            
+            # if graphs are not isomorphic, get approximation of their edit distance
+            if is_isomorphic == False:
+                approx_ged = next(nx.optimize_graph_edit_distance(G1, G2))
+                geds.append(approx_ged)
+                if prints:
+                    print(f"GED (approx): {approx_ged}")
+    
+    return barycenters, simrank_similarities, isomorphism_checks, geds
