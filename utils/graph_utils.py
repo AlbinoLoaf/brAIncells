@@ -39,9 +39,10 @@ def make_binary_graph(adjacency_matrix,thresh=0.5):
     Returns:
         networkx.Graph: graph created from adjacency matrix
     """
-    adjacency_matrix[adjacency_matrix < thresh] = 0.0
-    adjacency_matrix[adjacency_matrix >= thresh] =1.0
-    return make_graph(adjacency_matrix), adjacency_matrix
+    tmp = adjacency_matrix.clone()
+    tmp[tmp < thresh] = 0.0
+    tmp[tmp >= thresh] =1.0
+    return make_graph(tmp), tmp
 
 def get_barycenter(adj):
     """
