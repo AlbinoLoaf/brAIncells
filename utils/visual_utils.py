@@ -65,7 +65,7 @@ def visualize_adj_mat(adj_mat):
     plot_matrix("Adjecency matrix",adj_mat,node_labels,node_labels,cbarlabel="Edge strength",cellvalues=False)
 
     
-def graph_plot(adj,plot_func,row,col):
+def graph_plot(adj,plot_func,row,col, bary_list):
     """
     Plot multiple graphs (using a given plotting function) in one figure using subplots
     
@@ -87,11 +87,11 @@ def graph_plot(adj,plot_func,row,col):
     for i in range(len(adj)):
         assert np.array_equal(adj[i], adj[i].T), "The adjacency is not symetric"
         G=nx.from_numpy_array(adj[i].numpy())
-        plot_func(f"G{i+1}",G,row,col,i+1,pos)
+        plot_func(f"G{i+1}",G,row,col,i+1,pos,bary_list[i])
     plt.show()
 
 
-def graph_visual(title,G,row,col,idx,pos):
+def graph_visual(title,G,row,col,idx,pos,bary_list):
     """
     Visualize networkx graph
     
@@ -126,7 +126,8 @@ def graph_visual(title,G,row,col,idx,pos):
     label_dict = {node: label for node, label in zip(G.nodes(), node_labels)}
 
     fig = plt.subplot(row, col, idx)
-    nx.draw_networkx_nodes(G, pos, node_color="lightblue")
+    nx.draw_networkx_nodes(G, pos,nodelist=bary_list, node_color="plum")
+    nx.draw_networkx_nodes(G, pos, nodelist=[n for n in G.nodes() if n not in bary_list], node_color="lightblue")
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")
     nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, alpha=0.5, edge_color="black")
     nx.draw_networkx_labels(G, pos, labels=label_dict, font_size=10, font_color="black")
