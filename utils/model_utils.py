@@ -312,7 +312,7 @@ class TrainNN():
             print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}")
 
         
-        torch.save(model.state_dict(), f'{path}/{name}{modrun}.pth')
+        torch.save(model.state_dict(), f'{path}/{name}_{modrun}.pth')
 
         if has_val_set:
             losses = np.array([losses_train, losses_val])
