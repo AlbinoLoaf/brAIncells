@@ -7,6 +7,7 @@ import torch.optim as optim
 import wandb
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 
 def threshold(mat, thresh=0.2):
@@ -145,33 +146,37 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
         plt.show()
 
 
-def confusiong_avg(modlist,X_train, y_train, X_test, y_test,plots=True):
-    conf_mats_train=np.zeros((4,4))
-    conf_mats_test=np.zeros((4,4))
+def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
+    conf_mats_train = np.zeros((4, 4))
+    conf_mats_test = np.zeros((4, 4))
 
     for i in range(len(modlist)):
         preds_train = get_preds(modlist[i][0], X_train)
         preds_test = get_preds(modlist[i][0], X_test)
         conf_mats_train += confusion_matrix(y_train, preds_train)
-        conf_mats_test  += confusion_matrix(y_test, preds_test)
+        conf_mats_test += confusion_matrix(y_test, preds_test)
+
     conf_mats_train /= len(modlist)
     conf_mats_test /= len(modlist)
+
     if plots:
-        labels = ["feet","left_hand","right_hand","tongue"]
-       
+        labels = ["feet", "left_hand", "right_hand", "tongue"]
+
         disp_train = ConfusionMatrixDisplay(confusion_matrix=conf_mats_train, display_labels=labels)
         disp_test = ConfusionMatrixDisplay(confusion_matrix=conf_mats_test, display_labels=labels)
 
-        # Plot and set title
-        ax = disp_train.plot()  # returns (figure, axes)
-        ax.ax_.set_title("Confusion matrix - Train set")
-
+        fig, ax = plt.subplots()
+        disp_train.plot(ax=ax, values_format=".1f")
+        ax.set_title("Confusion matrix - Train set")
         plt.show()
-        ax = disp_test.plot()  # returns (figure, axes)
-        ax.ax_.set_title("Confusion matrix - Test set")
 
+        fig, ax = plt.subplots()
+        disp_test.plot(ax=ax, values_format=".1f")
+        ax.set_title("Confusion matrix - Test set")
         plt.show()
-    return conf_mats_train, conf_mats_test    
+
+    return conf_mats_train, conf_mats_test
+
 
 class TrainNN():
     
