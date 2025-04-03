@@ -152,7 +152,7 @@ def get_graph_metrics(mod_list, prints=True):
     # Barycenters and simrank similarity
     for i in range(len(mod_list)):
         
-        curr_adj = mu.get_adj_mat(mod_list[i][0])
+        curr_adj = mu.get_adj_mat(mod_list[i])
         curr_barycenter = get_barycenter(curr_adj)
         barycenters.append(curr_barycenter)
         G = make_graph(curr_adj)
@@ -164,7 +164,7 @@ def get_graph_metrics(mod_list, prints=True):
             print(f"Barycenter: {curr_barycenter}")
     
     isomorphism_checks = []; geds = []
-    graphs = [make_graph(mu.get_adj_mat(mod_list[i][0])) for i in range(len(mod_list))]
+    graphs = [make_graph(mu.get_adj_mat(mod_list[i])) for i in range(len(mod_list))]
     
     # Isomorphism check and graph edit distance
     for i in range(len(mod_list)):
