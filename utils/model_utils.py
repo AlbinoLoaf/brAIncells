@@ -183,8 +183,8 @@ class TrainNN():
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def train_model(self, model, train_loader, learning_rate, 
-                    path,name,has_val_set=False,val_loader=None,w_decay=1e-4, epochs=100, prints=True, modrun=0):
+    def train_model(self, model, train_loader, learning_rate, path,name,has_val_set=False,
+                    val_loader=None,w_decay=1e-4, epochs=100, prints=True, modrun=0, seed=42):
         '''
         Trains a given torch.nn model
         
@@ -221,6 +221,9 @@ class TrainNN():
               numpy array where losses[0] is the training loss history and losses[1] 
               is the validation loss history
         '''
+        
+        torch.manual_seed(seed)
+        np.random.seed(seed)
 
         model = model.to(self.device)
 
