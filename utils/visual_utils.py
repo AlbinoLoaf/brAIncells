@@ -4,7 +4,7 @@ import networkx as nx
 from utils.model_utils import get_adj_mat
 import pandas as pd
 #visualisation tools
-def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
+def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True, figsize=(10,10)):
     """
     Used for plotting our matrixis to unsure they are all the same format.
 
@@ -26,7 +26,7 @@ def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
         default = true, if fase will stop showing the valies for each matrix cell
     
     """
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=figsize)
     plt.imshow(matrix_data,cmap='inferno',vmin=0,vmax=1)
     plt.xticks(ticks=np.arange(len(xlabel)), labels=xlabel)
     plt.yticks(ticks=np.arange(len(ylabel)), labels=ylabel)
