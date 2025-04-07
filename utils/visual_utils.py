@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from utils.model_utils import get_adj_mat
 import pandas as pd
+import mne
 #visualisation tools
 def plot_matrix(title,matrix_data,xlabel,ylabel,cbarlabel="",cellvalues=True):
     """
@@ -117,19 +118,27 @@ def graph_visual(title,G,row,col,idx,pos,bary_list):
     -----
         fig - plt.subplot containing plot for given graph
     """
-    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
-    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
-
     # get node labels 
     node_labels = pd.read_csv("node_names.tsv", sep="\t")
     node_labels = list(node_labels['name'])
     label_dict = {node: label for node, label in zip(G.nodes(), node_labels)}
 
+    # MNE EEG montage
+    montage = mne.channels.make_standard_montage('standard_1020')
+    channels = node_labels
+
+    # get the positions of the electrodes through MNE
+    pos = montage.get_positions()['ch_pos']
+    pos = np.array([pos[i][:2] for i in channels])
+
+    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] >= 0.7]
+    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] < 0.7]
+
     fig = plt.subplot(row, col, idx)
     nx.draw_networkx_nodes(G, pos,nodelist=bary_list, node_color="plum")
     nx.draw_networkx_nodes(G, pos, nodelist=[n for n in G.nodes() if n not in bary_list], node_color="lightblue")
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=3, edge_color= "red")
-    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=2, alpha=0.5, edge_color="black")
+    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=1, alpha=0.5, edge_color="black")
     nx.draw_networkx_labels(G, pos, labels=label_dict, font_size=10, font_color="black")
     plt.title(title)
     return fig
