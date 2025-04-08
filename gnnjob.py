@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader,TensorDataset
 from torcheeg.io.eeg_signal import EEGSignalIO
 from torcheeg.models import DGCNN
 from torcheeg.models.gnn.dgcnn import GraphConvolution
+from sklearn.metrics import accuracy_score
 # helper sctipts 
 import utils.graph_utils as gu
 import utils.data_utils as du
@@ -64,6 +65,46 @@ assert X_train.shape[2]==len(bands),"Preprossed data does have incorrect amount 
 nsamples_train, nchannels_train, bands = X_train.shape
 train_dataset = TensorDataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+
+def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None,plots=True):
+    a=0
+        """
+    Display model metrics accuracy, f1 score and confusion matrix for the training, validation
+    (if applicable) and test sets
+    
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X_train, X_val, X_test: torch.FloatTensor
+        Input features for the train, validation (if applicable) and test sets
+    y_train, y_val, y_test: torch.FloatTensor
+        Output labels for the train, validation (if applicable) and test sets
+    """
+    preds_train = mu.get_preds(model, X_train)
+    preds_test = mu.get_preds(model, X_test)
+    
+    labels = ["feet","left_hand","right_hand","tongue"]
+            
+    y_train_npy = y_train.numpy()
+    y_test_npy = y_test.numpy()
+    
+    acc_train = accuracy_score(y_train_npy, preds_train)
+    acc_test = accuracy_score(y_test_npy, preds_test)
+    
+    f1_train = f1_score(y_train_npy, preds_train, average="macro")
+    f1_test = f1_score(y_test_npy, preds_test, average="macro")
+    
+    print(f"Acc train: {acc_train}")
+    print(f"Acc test: {acc_test}")
+    
+    print(f"F1 train: {f1_train}")
+    print(f"F1 test: {f1_test}")
+
+
+
 
 def train_models(model,modeltrainer,hid_chans,seed_list, num_models=1,new =False, prints=False):
     """
@@ -139,6 +180,8 @@ param_list = [8, 16, 24]
 seed_list = [42, 30, 66, 89]
 
 n_models = 4
+
+
 
 
 def lst_to_dict(lst):
