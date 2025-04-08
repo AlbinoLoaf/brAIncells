@@ -236,7 +236,7 @@ class TrainNN():
         losses_train = []; losses_val = []
 
         run = wandb.init(
-            project = "testing_200",
+            project = "training_1000",
             name="dgcnn",
             config={
                 "learning_rate":learning_rate,
