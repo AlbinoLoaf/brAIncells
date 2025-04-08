@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader,TensorDataset
 from torcheeg.io.eeg_signal import EEGSignalIO
 from torcheeg.models import DGCNN
 from torcheeg.models.gnn.dgcnn import GraphConvolution
+from sklearn.metrics import accuracy_score
 # helper sctipts 
 import utils.graph_utils as gu
 import utils.data_utils as du
@@ -65,6 +66,46 @@ nsamples_train, nchannels_train, bands = X_train.shape
 train_dataset = TensorDataset(X_train, y_train)
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
+
+def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None,plots=True):
+    a=0
+        """
+    Display model metrics accuracy, f1 score and confusion matrix for the training, validation
+    (if applicable) and test sets
+    
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X_train, X_val, X_test: torch.FloatTensor
+        Input features for the train, validation (if applicable) and test sets
+    y_train, y_val, y_test: torch.FloatTensor
+        Output labels for the train, validation (if applicable) and test sets
+    """
+    preds_train = mu.get_preds(model, X_train)
+    preds_test = mu.get_preds(model, X_test)
+    
+    labels = ["feet","left_hand","right_hand","tongue"]
+            
+    y_train_npy = y_train.numpy()
+    y_test_npy = y_test.numpy()
+    
+    acc_train = accuracy_score(y_train_npy, preds_train)
+    acc_test = accuracy_score(y_test_npy, preds_test)
+    
+    f1_train = f1_score(y_train_npy, preds_train, average="macro")
+    f1_test = f1_score(y_test_npy, preds_test, average="macro")
+    
+    print(f"Acc train: {acc_train}")
+    print(f"Acc test: {acc_test}")
+    
+    print(f"F1 train: {f1_train}")
+    print(f"F1 test: {f1_test}")
+
+
+
+
 def train_models(model,modeltrainer,hid_chans,seed_list, num_models=1,new =False, prints=False):
     """
     Training a model with random initialisation but consitent parameters. 
@@ -94,10 +135,10 @@ def train_models(model,modeltrainer,hid_chans,seed_list, num_models=1,new =False
         tmp_mod = model(in_channels=num_chans, num_electrodes=num_electrodes, 
                               hid_channels=hid_chans, num_layers=num_layers, num_classes=num_outputs)
         model_path=f"{path}/{modelname}_chan{hid_chans}_{i}.pth"
-        print(f"Model {i+1}")
+        #print(f"Model {i+1}")
         if new or not os.path.exists(model_path):    
             if not os.path.exists(model_path) and not new:
-                print(f"Could not resolve path: {model_path}")
+                #print(f"Could not resolve path: {model_path}")
                 new_models=True
             trainer = modeltrainer()
             
@@ -131,7 +172,7 @@ seed_list = [42, 30, 66, 89]
 
 #Models 
 modruns = 4
-plot=True
+plot=False
 new_models=True
 mods = train_models(DGCNN, TrainNN,hid_chans,seed_list, num_models=modruns, prints=plot, new=new_models)
 
@@ -139,6 +180,8 @@ param_list = [8, 16, 24]
 seed_list = [42, 30, 66, 89]
 
 n_models = 4
+
+
 
 
 def lst_to_dict(lst):
@@ -172,13 +215,13 @@ def multi_parameter_mod(param_list, seed_list, n_models):
     # train n_models models with each number of hidden neurons specified in the param_list
     for n_chans in param_list:
         curr_model = [x[0] for x in train_models(DGCNN, TrainNN, n_chans, seed_list, num_models = n_models,
-                                                 prints=False, new=False)]
+                                                 prints=plot, new=False)]
         models_dict[n_chans].extend(curr_model)
     
     # calculate all metrics for models with the same number of hidden neurons
     for n_chans in param_list:
         models = models_dict[n_chans]
-        bary, sim, _, ed = gu.get_graph_metrics(models, prints=False)
+        bary, sim, _, ed = gu.get_graph_metrics(models, prints=plot)
         bary_dict[n_chans].extend(bary)
         sim_dict[n_chans].extend(sim)
         edit_dists_internal[n_chans].extend(ed)
@@ -196,5 +239,50 @@ def multi_parameter_mod(param_list, seed_list, n_models):
 
     return models_dict, bary_dict, sim_dict, edit_dists_internal, edit_dists_external
 models, barycenters, sims, edit_dists_internal, edit_dists_external = multi_parameter_mod(param_list, seed_list, n_models)
+
+for k in edit_dists_internal.keys():
+    
+    curr_list = edit_dists_internal[k]
+    #print(f"{k}: {sum(curr_list) / len(curr_list)}")
+
+
+for k in edit_dists_external.keys():
+    
+    curr_list = edit_dists_external[k]
+    #print(f"{k}: {sum(curr_list) / len(curr_list)}")
+
+
+node_labels = pd.read_csv("node_names.tsv", sep="\t")
+node_labels = list(node_labels['name'])
+
+for k in barycenters.keys():
+    a=0
+    #print(f"For n_neurons = {k}")
+    #print([[node_labels[x] for x in s] for s in barycenters[k]])
+
+
+for i in range(modruns):
+    #print(f"Model {i+1} test")
+    test_model = mods[i][0].to("cpu").eval()
+    mu.model_metrics(test_model, X_train, y_train, X_test, y_test, None, None,plots=plot)
+
+
+    graphs=[]
+adj_mats=[]
+for i in range(modruns):
+    adj_mats.append(mu.get_adj_mat(mods[i][0]))
+    graphs.append(gu.make_graph(adj_mats[i]))
+if plot:
+    for adj in adj_mats:
+        vu.visualize_adj_mat(adj)
+#throw error if isomophic
+for G1 in range(len(mods)):
+    for G2 in range(G1+1,len(mods)):
+        assert gu.check_not_isomorphism(graphs[G1],graphs[G2]), f"Graph G{G1} and G{G2} are isomophic"
+
+if plot:
+    for i in param_list:
+        bary_list = barycenters[i]
+        vu.graph_plot(adj_mats,vu.graph_visual,2,2,bary_list)
 
 
