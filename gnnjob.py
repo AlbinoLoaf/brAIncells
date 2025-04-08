@@ -215,7 +215,7 @@ hid_chans = 16
 
 # Training parameters
 lr = 1e-4
-epochs = 40
+epochs = 200
 w_decay = 1e-3
 
 seed_list = [42, 30, 66, 89]
