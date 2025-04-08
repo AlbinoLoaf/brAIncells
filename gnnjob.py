@@ -19,6 +19,9 @@ import utils.model_utils as mu
 import utils.visual_utils as vu
 from utils.model_utils import TrainNN
 from utils.cka import CKACalculator
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
+
+
 
 ## Path constants
 path="artifacts"
@@ -238,51 +241,88 @@ def multi_parameter_mod(param_list, seed_list, n_models):
             edit_dists_external[param_comb].append(ed_external)
 
     return models_dict, bary_dict, sim_dict, edit_dists_internal, edit_dists_external
+
+
+def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None,plots=True):
+    """
+    Display model metrics accuracy, f1 score and confusion matrix for the training, validation
+    (if applicable) and test sets
+    
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X_train, X_val, X_test: torch.FloatTensor
+        Input features for the train, validation (if applicable) and test sets
+    y_train, y_val, y_test: torch.FloatTensor
+        Output labels for the train, validation (if applicable) and test sets
+    """
+    preds_train = mu.get_preds(model, X_train)
+    preds_test = mu.get_preds(model, X_test)    
+            
+    y_train_npy = y_train.numpy()
+    y_test_npy = y_test.numpy()
+    
+    acc_train = accuracy_score(y_train_npy, preds_train)
+    acc_test = accuracy_score(y_test_npy, preds_test)
+    
+    f1_train = f1_score(y_train_npy, preds_train, average="macro")
+    f1_test = f1_score(y_test_npy, preds_test, average="macro")
+    
+    conf_mat_train = confusion_matrix(y_train, preds_train)        
+    conf_mat_test = confusion_matrix(y_test, preds_test)
+    return acc_train,f1_train,conf_mat_train, acc_test, f1_test,conf_mat_test
+
 models, barycenters, sims, edit_dists_internal, edit_dists_external = multi_parameter_mod(param_list, seed_list, n_models)
 
-for k in edit_dists_internal.keys():
-    
-    curr_list = edit_dists_internal[k]
-    #print(f"{k}: {sum(curr_list) / len(curr_list)}")
 
+def generate_model_dict(models, X_train, y_train, X_test, y_test, node_labels=None, compute_adj=True):
+    """
+    Generate a dictionary with relevant metrics and artifacts for each model.
 
-for k in edit_dists_external.keys():
-    
-    curr_list = edit_dists_external[k]
-    #print(f"{k}: {sum(curr_list) / len(curr_list)}")
+    Parameters
+    ----------
+    models : list
+        List of tuples, each containing (model, training_logs or [])
+    X_train, y_train, X_test, y_test : torch.Tensor
+        Dataset splits
+    node_labels : list, optional
+        If provided, will be used to label adjacency matrices
+    compute_adj : bool
+        Whether to extract adjacency matrices
 
+    Returns
+    -------
+    model_metrics_dict : dict
+        Dictionary containing metrics and artifacts per model index
+    """
+    model_metrics_dict = {}
 
-node_labels = pd.read_csv("node_names.tsv", sep="\t")
-node_labels = list(node_labels['name'])
+    for i, (model, _) in enumerate(models):
+        model = model.eval().cpu()
+        
+        # Metrics
+        acc_train, f1_train, conf_train, acc_test, f1_test, conf_test = model_metrics(
+            model, X_train, y_train, X_test, y_test, plots=False
+        )
 
-for k in barycenters.keys():
-    a=0
-    #print(f"For n_neurons = {k}")
-    #print([[node_labels[x] for x in s] for s in barycenters[k]])
+        # Adjacency matrix
+        adj = None
+        if compute_adj:
+            adj = mu.get_adj_mat(model)
+            if node_labels is not None:
+                adj = pd.DataFrame(adj, index=node_labels, columns=node_labels)
 
+        model_metrics_dict[i] = {
+            "model": model,
+            "adjacency_matrix": adj,
+            "acc_train": acc_train,
+            "f1_train": f1_train,
+            "confusion_train": conf_train,
+            "acc_test": acc_test,
+            "f1_test": f1_test,
+            "confusion_test": conf_test
+        }
 
-for i in range(modruns):
-    #print(f"Model {i+1} test")
-    test_model = mods[i][0].to("cpu").eval()
-    mu.model_metrics(test_model, X_train, y_train, X_test, y_test, None, None,plots=plot)
-
-
-    graphs=[]
-adj_mats=[]
-for i in range(modruns):
-    adj_mats.append(mu.get_adj_mat(mods[i][0]))
-    graphs.append(gu.make_graph(adj_mats[i]))
-if plot:
-    for adj in adj_mats:
-        vu.visualize_adj_mat(adj)
-#throw error if isomophic
-for G1 in range(len(mods)):
-    for G2 in range(G1+1,len(mods)):
-        assert gu.check_not_isomorphism(graphs[G1],graphs[G2]), f"Graph G{G1} and G{G2} are isomophic"
-
-if plot:
-    for i in param_list:
-        bary_list = barycenters[i]
-        vu.graph_plot(adj_mats,vu.graph_visual,2,2,bary_list)
-
-
+    return model_metrics_dict
