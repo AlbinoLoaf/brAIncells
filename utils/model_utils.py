@@ -269,7 +269,7 @@ class TrainNN():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train_model(self, model, train_loader, learning_rate, path,name,has_val_set=False,
-                    val_loader=None,w_decay=1e-4, epochs=100, prints=True, modrun=0, seed=42):
+                    val_loader=None,w_decay=1e-4, epochs=100, prints=True, modrun=0):
         '''
         Trains a given torch.nn model
         
