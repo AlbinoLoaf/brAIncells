@@ -1,5 +1,6 @@
 # models and data files 
 *.pth
+models/*
 *.npy
 /wandb/*
 # Byte-compiled / optimized / DLL files
