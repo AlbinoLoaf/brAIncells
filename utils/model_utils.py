@@ -177,7 +177,6 @@ def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
 
     return conf_mats_train, conf_mats_test
 
-
 class TrainNN():
     
     def __init__(self):
