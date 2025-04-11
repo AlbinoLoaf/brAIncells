@@ -11,6 +11,7 @@ import wandb
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix,  ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import utils.graph_utils as gu
 
 
 def threshold(mat, thresh=0.2):

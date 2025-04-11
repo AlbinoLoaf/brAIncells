@@ -142,3 +142,79 @@ def graph_visual(title,G,row,col,idx,pos,bary_list):
     nx.draw_networkx_labels(G, pos, labels=label_dict, font_size=10, font_color="black")
     plt.title(title)
     return fig
+
+
+def bary_hist(bary_list):
+
+    counter = Counter(bary_list)
+    sorted_labels = sorted(counter.items())  
+    labels, values = zip(*sorted_labels)
+
+    node_labels = pd.read_csv("node_names.tsv", sep="\t")
+    node_labels = list(node_labels['name'])
+
+    fig = plt.figure(figsize=(8, 6))
+    indexes = np.arange(len(labels))
+    plt.bar(indexes, values)
+    plt.xticks(indexes, node_labels)
+    plt.show()
+    
+def simrank_to_matrix(sim):
+    
+    n = len(sim)
+    mat = np.zeros((n,n))
+    
+    for i in range(n):
+        for j in range(n):
+            
+            mat[i, j] = sim[i][j]
+    return mat
+
+def plot_simrank(sims, n_nodes=22, figsize=(5,5)):
+    
+    for k in sims.keys():
+        curr_sims = sims[k]
+        for i in range(len(curr_sims)):
+            curr_mat = simrank_to_matrix(curr_sims[i])
+            vu.plot_matrix(f"Simrank for k = {k} model idx {i}", curr_mat, list(range(n_nodes)), list(range(n_nodes)), 
+                           cbarlabel="", cellvalues=False, figsize=figsize)
+            
+            
+def plot_loss_curves(path, mods):
+    
+    for i  in range(len(mods)):
+        filepath=f"{path}/Training_validation_loss{i}.npy"
+        if not new_models:
+            try: 
+                with open(filepath, "rb") as f:
+                    data = np.load(f)
+            except:
+                print(f"File with the data could not be found looking at address: {filepath}")
+        else:
+            with open(filepath, "wb") as f:
+                np.save(f, mods[0][1])
+                data = mods[0][1]
+        plt.plot(data[0])
+        plt.plot(data[1])
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
+        plt.legend(["training loss","validation loss"])
+        plt.title(f"Model{i} Training vs validation loss")
+        plt.show()
+        
+def mne_plot(node_labels_path):
+
+    node_labels = pd.read_csv(node_labels_path, sep="\t")
+    node_labels = list(node_labels['name'])
+
+    info = mne.create_info(ch_names=node_labels,sfreq=1000,ch_types='eeg')
+
+    n_channels = len(node_labels)
+    data = np.zeros((n_channels, 1000))
+
+    raw = mne.io.RawArray(data, info)
+
+    montage = mne.channels.make_standard_montage('standard_1020')
+    raw.set_montage(montage)
+
+    raw.plot_sensors(kind='topomap', show_names=True)
