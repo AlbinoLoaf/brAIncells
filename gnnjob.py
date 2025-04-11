@@ -24,15 +24,12 @@ from utils.cka import CKACalculator
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
 
 import wandb
-
-
 ## Path constants
 path="artifacts"
-modelname="dgcnn_mod"
 data_path = "../data/"
 preprocessed_data_path = f"{path}/preprocessed_data.npy"
 has_val_set = False
-seed = 42 #should not be set herer right ??
+seed = 42 
 
 ## Establish connection to datafile
 IO = EEGSignalIO(io_path=str(data_path), io_mode='lmdb')
@@ -40,7 +37,6 @@ bands = {"delta": [1, 4],"theta": [4, 8],"alpha": [8, 14],"beta": [14, 31],"gamm
 
 ## Read metadata dataframeimports
 metadata = pd.read_csv(data_path + 'sample_metadata.tsv', sep='\t')
-
 
 # Verifying connection to data
 idxs = np.arange(len(metadata))
@@ -144,7 +140,7 @@ def generate_model_dict(models, X_train, y_train, X_test, y_test, node_labels=No
 
         model_metrics_dict[i] = {
             "model": model,
-            "adjacency_matrix": adj,
+            "adj_mat": adj,
             "acc_train": acc_train,
             "f1_train": f1_train,
             "confusion_train": conf_train,

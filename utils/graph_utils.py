@@ -145,6 +145,29 @@ def get_activations(model,data, layer_type=[GraphConvolution]):
     return activations
 
 
+def simrank_to_matrix(sim):
+    """
+    Makes the simrank martricx from the simrank lists 
+
+    
+    Parameters
+    --------
+    sim : list of lists [][]
+        simrank returned by the simrank networksX
+    Returns
+    --------
+    mat : numpy((n,n))
+    
+    """
+    n = len(sim)
+    mat = np.zeros((n,n))
+    
+    for i in range(n):
+        for j in range(n):
+            
+            mat[i, j] = sim[i][j]
+    return mat
+
 def get_graph_metrics(mod_list, prints=True):
 
     barycenters = []; simrank_similarities = []

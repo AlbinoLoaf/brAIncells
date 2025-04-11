@@ -1,11 +1,14 @@
 #Matrix 
 import numpy as np
+import random
+import os
+import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import wandb
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix,  ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
@@ -96,22 +99,6 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
     
     labels = ["feet","left_hand","right_hand","tongue"]
     
-    if X_val != None:
-        preds_val = get_preds(model, X_val)
-        y_val_npy = y_val.numpy()
-        acc_val = accuracy_score(y_val_npy, preds_val)
-        f1_val = f1_score(y_val_npy, preds_val, average="macro")
-        print(f"Acc val: {acc_val}")
-        print(f"F1 val: {f1_val}")
-        
-        conf_mat_val = confusion_matrix(y_val, preds_val)
-        disp_val = ConfusionMatrixDisplay(confusion_matrix=conf_mat_val, display_labels=labels)
-
-        ax = disp_val.plot()
-        ax.ax_.set_title("Confusion matrix - Validation set")
-
-        plt.show()
-        
     y_train_npy = y_train.numpy()
     y_test_npy = y_test.numpy()
     
@@ -121,13 +108,12 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
     f1_train = f1_score(y_train_npy, preds_train, average="macro")
     f1_test = f1_score(y_test_npy, preds_test, average="macro")
     
-    print(f"Acc train: {acc_train}")
-    print(f"Acc test: {acc_test}")
-    
-    print(f"F1 train: {f1_train}")
-    print(f"F1 test: {f1_test}")
-    
     if plots:
+        print(f"Acc train: {acc_train}")
+        print(f"Acc test: {acc_test}")
+        
+        print(f"F1 train: {f1_train}")
+        print(f"F1 test: {f1_test}")
         conf_mat_train = confusion_matrix(y_train, preds_train)
         disp_train = ConfusionMatrixDisplay(confusion_matrix=conf_mat_train, display_labels=labels)
 
@@ -144,7 +130,7 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
         ax.ax_.set_title("Confusion matrix - Test set")
 
         plt.show()
-
+    return acc_train,f1_train,acc_test,f1_test
 
 def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
     conf_mats_train = np.zeros((4, 4))
@@ -176,6 +162,105 @@ def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
         plt.show()
 
     return conf_mats_train, conf_mats_test
+
+
+def lst_to_dict(lst):
+    return dict([(x, []) for x in lst])
+
+def internal_dict(lst):
+    models_dict     = lst_to_dict(lst)  #Dict with all models
+    bary_dict       = lst_to_dict(lst)  #Graph metric dict n for barycenter
+    sim_dict        = lst_to_dict(lst)  #Graph metric dict n for simrank
+    edit_dists      = lst_to_dict(lst)  #Graph metric dict n for GED between similar param models
+    return models_dict,bary_dict,sim_dict,edit_dists
+
+def run_models_hpc(param_list, n_runs):
+
+    run_idx = 1
+    while run_idx < n_runs:
+        print(run_idx)
+        random_seed = random.randint(0, 999999)
+        random.seed(random_seed)
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+
+        path_name = f"run_{run_idx}_seed_{random_seed}"
+        os.makedirs(path_name)
+        models_dict, bary_dict, sim_dict, _ = internal_dict(param_list)
+        
+        for n_chans in param_list:
+            model_name = f"model_chans_{n_chans}_seed_{random_seed}"
+            curr_model = [x[0] for x in train_models(DGCNN, TrainNN, n_chans, seed_list, num_models = 1,
+                                                     prints=False, new=True, path=path_name, modelname=model_name)]
+            models_dict[n_chans].extend(curr_model)
+        
+        for n_chans in param_list:
+            models = models_dict[n_chans]
+            bary, sim, _, _ = gu.get_graph_metrics(models, prints=False)
+            bary_dict[n_chans].extend(bary)
+            sim_dict[n_chans].extend(sim)
+        
+        file_suffix = f"_seed_{random_seed}"
+
+        with open(f'{path_name}/barycenters{file_suffix}.pkl', 'wb') as fp:
+            pickle.dump(bary_dict, fp)
+            
+        with open(f'{path_name}/simrank{file_suffix}.pkl', 'wb') as fp:
+            pickle.dump(sim_dict, fp)
+        
+        run_idx += 1
+
+
+def multi_parameter_mod(param_list, seed_list, n_models):
+    # TO DO: take into account seeds. Right now the seed_list doesn't do anything
+    # all combinations of model indexes between two parameter sets
+    # ex all model combinations between models with 8 hidden neurons and models with 16 hidden neurons
+    
+    
+    combs_external =[
+        (i, j)
+        for i in range(n_models)
+        for j in range(n_models, 2 * n_models)
+        ]
+    #combs_external = list(itertools.product([x for x in range(n_models)], [x+n_models for x in range(n_models)]))
+    # all combinations of parameter values, in this case number of hidden neurons
+    param_combs = [
+        (param_list[i], param_list[j]) 
+        for i in range(0,   len(param_list)) 
+        for j in range(i+1, len(param_list))]
+    
+    models_dict, bary_dict, sim_dict, edit_dists_internal = internal_dict(param_list)
+    edit_dists_external = lst_to_dict(param_combs)   #Graph metric dict n for GED between different param models
+    
+    # train n_models models with each number of hidden neurons specified in the param_list
+    for n_chans in param_list:
+        a=0
+        #curr_model = [x[0] for x in train_models(DGCNN, TrainNN, n_chans, seed_list, num_models = n_models,prints=plot, new=False)]
+        #models_dict[n_chans].extend(curr_model)
+    
+    # calculate all metrics for models with the same number of hidden neurons
+    for n_chans in param_list:
+        models = models_dict[n_chans]
+        bary, sim, _, ed = gu.get_graph_metrics(models, prints=False)
+        bary_dict[n_chans].extend(bary)
+        sim_dict[n_chans].extend(sim)
+        edit_dists_internal[n_chans].extend(ed)
+    
+    # calculate edit distance between models with different number of hidden neurons
+    for param_comb in param_combs:
+        for ext_comb in combs_external:
+            model1_idx = ext_comb[0]; model2_idx = ext_comb[1]
+            model1 = models_dict[param_comb[0]][model1_idx]
+            model2 = models_dict[param_comb[1]][model2_idx-n_models]
+            G1 = gu.make_graph(mu.get_adj_mat(model1))
+            G2 = gu.make_graph(mu.get_adj_mat(model2))
+            ed_external = next(nx.optimize_graph_edit_distance(G1, G2))
+            edit_dists_external[param_comb].append(ed_external)
+
+    return models_dict, bary_dict, sim_dict, edit_dists_internal, edit_dists_external
+
+
+
 
 class TrainNN():
     
