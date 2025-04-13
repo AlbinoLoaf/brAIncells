@@ -137,7 +137,7 @@ def train_models(modeltrainer,dict_model_arch, dict_training,dict_model_meta, pa
                                                     learning_rate=dict_training["lr"],
                                                     w_decay=dict_training["w_decay"],
                                                     epochs=dict_training["epochs"], 
-                                                    prints=dict_model_meta["plot"],
+                                                    prints=False,
                                                     modrun=i))   
             else:
                 print(f"[train_models]: Loading models from {model_path}")
