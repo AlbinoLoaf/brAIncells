@@ -13,6 +13,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import utils.graph_utils as gu
 
+def seed_all(seed):
+
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def threshold(mat, thresh=0.2):
     """ 
@@ -181,10 +190,7 @@ def run_models_hpc(param_list, n_runs):
     while run_idx < n_runs:
         print(run_idx)
         random_seed = random.randint(0, 999999)
-        random.seed(random_seed)
-        torch.manual_seed(random_seed)
-        np.random.seed(random_seed)
-
+        seed_all(random_seed)
         path_name = f"run_{run_idx}_seed_{random_seed}"
         os.makedirs(path_name)
         models_dict, bary_dict, sim_dict, _ = internal_dict(param_list)
@@ -212,7 +218,7 @@ def run_models_hpc(param_list, n_runs):
         run_idx += 1
 
 
-def multi_parameter_mod(param_list, seed_list, n_models):
+def multi_parameter_mod(param_list, n_models):
     # TO DO: take into account seeds. Right now the seed_list doesn't do anything
     # all combinations of model indexes between two parameter sets
     # ex all model combinations between models with 8 hidden neurons and models with 16 hidden neurons
@@ -306,9 +312,6 @@ class TrainNN():
               numpy array where losses[0] is the training loss history and losses[1] 
               is the validation loss history
         '''
-        
-        torch.manual_seed(seed)
-        np.random.seed(seed)
 
         model = model.to(self.device)
 
@@ -400,15 +403,13 @@ class TrainNN():
             print(f"Highest Train Accuracy {(highest_train_accuracy*100):.2f}")
 
         
-        torch.save(model.state_dict(), f'{path}/{name}_{modrun}.pth')
+        print(f"[TrainNN.train_model] : Saving model at {path}")
+        torch.save(model.state_dict(), path)
 
         if has_val_set:
             losses = np.array([losses_train, losses_val])
         else:
             losses = np.array(losses_train)
-
-        with open(f"{path}/metrics{modrun}.npy", "wb") as f:
-            np.save(f, losses)
 
         run.finish()
 
