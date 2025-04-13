@@ -13,16 +13,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import utils.graph_utils as gu
 
-def seed_all(seed):
-
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
 def threshold(mat, thresh=0.2):
     """ 
     Helper function for get_adj_mat, Sets all entries in a matrix below the threshold to 0
@@ -172,50 +162,6 @@ def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
         plt.show()
 
     return conf_mats_train, conf_mats_test
-
-
-def lst_to_dict(lst):
-    return dict([(x, []) for x in lst])
-
-def internal_dict(lst):
-    models_dict     = lst_to_dict(lst)  #Dict with all models
-    bary_dict       = lst_to_dict(lst)  #Graph metric dict n for barycenter
-    sim_dict        = lst_to_dict(lst)  #Graph metric dict n for simrank
-    edit_dists      = lst_to_dict(lst)  #Graph metric dict n for GED between similar param models
-    return models_dict,bary_dict,sim_dict,edit_dists
-
-def run_models_hpc(param_list, n_runs):
-
-    run_idx = 1
-    while run_idx < n_runs:
-        print(run_idx)
-        random_seed = random.randint(0, 999999)
-        seed_all(random_seed)
-        path_name = f"run_{run_idx}_seed_{random_seed}"
-        os.makedirs(path_name)
-        models_dict, bary_dict, sim_dict, _ = internal_dict(param_list)
-        
-        for n_chans in param_list:
-            model_name = f"model_chans_{n_chans}_seed_{random_seed}"
-            curr_model = [x[0] for x in train_models(DGCNN, TrainNN, n_chans, seed_list, num_models = 1,
-                                                     prints=False, new=True, path=path_name, modelname=model_name)]
-            models_dict[n_chans].extend(curr_model)
-        
-        for n_chans in param_list:
-            models = models_dict[n_chans]
-            bary, sim, _, _ = gu.get_graph_metrics(models, prints=False)
-            bary_dict[n_chans].extend(bary)
-            sim_dict[n_chans].extend(sim)
-        
-        file_suffix = f"_seed_{random_seed}"
-
-        with open(f'{path_name}/barycenters{file_suffix}.pkl', 'wb') as fp:
-            pickle.dump(bary_dict, fp)
-            
-        with open(f'{path_name}/simrank{file_suffix}.pkl', 'wb') as fp:
-            pickle.dump(sim_dict, fp)
-        
-        run_idx += 1
 
 
 def multi_parameter_mod(param_list, n_models):
