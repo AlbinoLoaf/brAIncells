@@ -53,45 +53,7 @@ def band_preprocess(X, preprocessed_data_path):
 
 
 
-def read_saved_models(saved_path):    
-    main_folder_files = []
-    for folder in os.listdir(saved_path):
-        if "gpuerror" not in folder:
-            file_names = os.listdir(saved_path + "/" + folder)
-            folder_seed = int(folder.split("_")[-1])
-            main_folder_files.append([folder, file_names, folder_seed])
 
-    model_objects = dict()
-    bary_dict = dict()
-    simrank_dict = dict()
-    for folder_name, folder_files, seed in main_folder_files:
-        #print(f"for seed = {seed}")
-        model_objects[seed] = dict()
-        bary_dict[seed] = dict()
-        simrank_dict[seed] = dict()
-        for file_name in folder_files:
-
-            if file_name[:5] == "model":
-                #print(f"file_name: {file_name} - MODEL file")
-                chans = int(file_name.split("_")[3][4:])
-                full_model_path = saved_path + "/" + folder_name + "/" + file_name
-                
-                curr_mod = DGCNN(in_channels=5, num_electrodes=22, 
-                              hid_channels=chans, num_layers=2, num_classes=5)
-                
-                model_weights = torch.load(full_model_path)
-                curr_mod.load_state_dict(model_weights)
-                model_objects[seed][chans] = curr_mod
-            if file_name[:10] == "barycenter":
-                full_dict_path = saved_path + "/" + folder_name + "/" + file_name
-                with open(full_dict_path,'rb') as fb:
-                    bary_dict[seed] = pickle.load(fb)
-            if file_name[:7] == "simrank":
-                full_dict_path = saved_path + "/" + folder_name + "/" + file_name
-                with open(full_dict_path,'rb') as fb:
-                    simrank_dict[seed] = pickle.load(fb)
-                
-    return bary_dict, simrank_dict, model_objects
 
 
 def split_data(X, y, has_val_set=False, seed=42):
