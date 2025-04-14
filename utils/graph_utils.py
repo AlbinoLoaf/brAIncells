@@ -176,8 +176,11 @@ def get_graph_metrics(mod_list, prints=True):
     for i in range(len(mod_list)):
         
         curr_adj = mu.get_adj_mat(mod_list[i])
-        curr_barycenter = get_barycenter(curr_adj)
-        barycenters.append(curr_barycenter)
+        if nx.is_connected(make_graph(curr_adj)):
+            curr_barycenter = get_barycenter(curr_adj)
+            barycenters.append(curr_barycenter)
+        else:
+            print("graph not connected")
         G = make_graph(curr_adj)
         sim = get_simrank_similarity(G) # not printing because it's a huge dict of all node pair simiarities
         simrank_similarities.append(sim)
@@ -207,5 +210,7 @@ def get_graph_metrics(mod_list, prints=True):
                 geds.append(approx_ged)
                 if prints:
                     print(f"GED (approx): {approx_ged}")
-    
-    return barycenters, simrank_similarities, isomorphism_checks, geds
+    if nx.is_connected(make_graph(curr_adj)):
+        return barycenters, simrank_similarities, isomorphism_checks, geds
+    else:
+        return [[0]], simrank_similarities, isomorphism_checks, geds
