@@ -168,7 +168,7 @@ def simrank_to_matrix(sim):
             mat[i, j] = sim[i][j]
     return mat
 
-def get_graph_metrics(mod_list, prints=True):
+def get_graph_metrics_internal(mod_list, prints=False):
 
     barycenters = []; simrank_similarities = []
     
@@ -188,6 +188,10 @@ def get_graph_metrics(mod_list, prints=True):
         if prints:
             print(f"---For model idx {i}---")
             print(f"Barycenter: {curr_barycenter}")
+    
+    return barycenters, simrank_similarities
+
+def get_graph_metrics_external(mod_list, prints=False):
     
     isomorphism_checks = []; geds = []
     graphs = [make_graph(mu.get_adj_mat(mod_list[i])) for i in range(len(mod_list))]
@@ -210,7 +214,4 @@ def get_graph_metrics(mod_list, prints=True):
                 geds.append(approx_ged)
                 if prints:
                     print(f"GED (approx): {approx_ged}")
-    if nx.is_connected(make_graph(curr_adj)):
-        return barycenters, simrank_similarities, isomorphism_checks, geds
-    else:
-        return [[0]], simrank_similarities, isomorphism_checks, geds
+    return isomorphism_checks, geds
