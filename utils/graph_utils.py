@@ -67,6 +67,28 @@ def get_barycenter(adj):
     return bar
 
 
+def get_max_betweeness_nodes(model_dict):
+    
+    betweeness_nodes = dict()
+    for n_chans in model_dict.keys():
+        
+        curr_models = model_dict[n_chans]   
+        chan_betweeness = []
+        
+        for model in curr_models:
+            
+            curr_adj_mat = mu.get_adj_mat(model)
+            G = make_graph(curr_adj_mat)
+            betweeness_vals = sorted(nx.betweenness_centrality(G).items(), key=lambda x:x[1], reverse=True)
+            highest = betweeness_vals[0][1]
+            highest_nodes = [x[0] for x in betweeness_vals if x[1] == highest]
+            chan_betweeness.append(highest_nodes)
+            
+        betweeness_nodes[n_chans] = chan_betweeness
+        
+    return betweeness_nodes
+
+
 def get_bary_counts(bary_dict):
     
     freqs_by_chan = dict()
