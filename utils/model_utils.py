@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torcheeg.models import DGCNN
 import wandb
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix,  ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
@@ -78,6 +79,118 @@ def get_preds(model, X):
     """
     _, preds = torch.max(model(X), 1)
     return preds.detach().numpy()
+
+
+def eval_model(model, X_train, y_train, X_test, y_test):
+
+    preds_train = get_preds(model, X_train)
+    preds_test = get_preds(model, X_test)
+        
+    y_train_npy = y_train.numpy() ; y_test_npy = y_test.numpy()
+    
+    acc_train = accuracy_score(y_train_npy, preds_train)
+    acc_test = accuracy_score(y_test_npy, preds_test)
+    
+    return acc_train, acc_test, acc_train-acc_test
+
+
+def get_all_models(model_dict):
+    
+    models = []
+    
+    for seed_val in model_dict.keys():
+        
+        curr_models_dict = model_dict[seed_val]
+        
+        for chan_val in curr_models_dict.keys():
+            
+            curr_models = curr_models_dict[chan_val]
+            models.append(curr_models)
+        
+    return models
+
+def avg_performance(models, X_train, y_train, X_test, y_test, prints=True):
+    
+    N = len(models)
+    train_accs = np.zeros(N); test_accs = np.zeros(N); difs = np.zeros(N)
+    
+    for i in range(N):
+        curr_train, curr_test, curr_dif = eval_model(models[i], X_train, y_train, X_test, y_test)
+        train_accs[i] = curr_train; test_accs[i] = curr_test; difs[i] = curr_dif
+        
+    train_avg = np.mean(train_accs); test_avg = np.mean(test_accs); difs_avg = np.mean(difs)
+    train_std = np.std(train_accs); test_std = np.std(test_accs); difs_std = np.std(difs)
+    
+    if prints:
+        print(f"Average models training accuracy: {train_avg:.3f}")
+        print(f"Average models test accuracy: {test_avg:.3f}")
+        print(f"Average models training-test accuracy difference: {difs_avg:.3f}")
+
+        print(f"Models training accuracy SD: {train_std:.3f}")
+        print(f"Models test accuracy SD: {test_std:.3f}")
+        print(f"Models training-test accuracy difference SD: {difs_std:.3f}")
+    
+    return train_avg, test_avg, difs_avg, train_std, test_std, difs_std 
+
+
+def read_saved_models(saved_path):    
+    main_folder_files = []
+    for folder in os.listdir(saved_path):
+        if "gpuerror" not in folder:
+            file_names = os.listdir(saved_path + folder)
+            folder_seed = int(folder.split("_")[-1])
+            main_folder_files.append([folder, file_names, folder_seed])
+
+    model_objects = dict()
+    for folder_name, folder_files, seed in main_folder_files:
+        #print(f"for seed = {seed}")
+        model_objects[seed] = dict()
+        for file_name in folder_files:
+
+            if file_name[:5] == "model":
+                #print(f"file_name: {file_name} - MODEL file")
+                chans = int(file_name.split("_")[2])
+                full_model_path = saved_path + "/" + folder_name + "/" + file_name
+                
+                curr_mod = DGCNN(in_channels=5, num_electrodes=22, 
+                              hid_channels=chans, num_layers=2, num_classes=5)
+                
+                model_weights = torch.load(full_model_path, map_location=torch.device('cpu'))
+                curr_mod.load_state_dict(model_weights)
+                model_objects[seed][chans] = curr_mod
+                
+    return model_objects
+
+
+def metrics_by_chans(model_dict, get_external=False):
+    
+    model_by_chans = dict()
+    for curr_seed in model_dict.keys():
+        for n_chans in model_dict[curr_seed].keys():
+            if n_chans not in model_by_chans.keys():
+                model_by_chans[n_chans] = []
+            model_by_chans[n_chans].append(model_dict[curr_seed][n_chans])
+    
+    barycenters_by_chans = dict()
+    sims_by_chans = dict()
+    isomorphism_by_chans = dict()
+    geds_by_chans = dict()
+    for n_chans in model_by_chans.keys():
+        curr_models = model_by_chans[n_chans]
+        
+        barycenters, sims = gu.get_graph_metrics_internal(curr_models, prints=False)
+        barycenters_by_chans[n_chans] = barycenters
+        sims_by_chans[n_chans] = sims
+        
+        if get_external:
+            iso, geds = gu.get_graph_metrics_external(curr_models, prints=False)
+            isomorphism_by_chans[n_chans] = iso
+            geds_by_chans[n_chans] = geds
+
+    if get_external:
+        return model_by_chans, barycenters_by_chans, sims_by_chans, isomorphism_by_chans, geds_by_chans
+    else:
+        return model_by_chans, barycenters_by_chans, sims_by_chans
 
 def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=None,plots=True):
     """

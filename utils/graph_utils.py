@@ -4,6 +4,7 @@ import numpy as np
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 from utils.cka import HookManager
 import utils.model_utils as mu 
+from collections import Counter
 
 
 # Networkx utils, Graph utils
@@ -64,6 +65,55 @@ def get_barycenter(adj):
     G = nx.from_numpy_array(adj.numpy())
     bar = nx.barycenter(G)
     return bar
+
+
+def get_bary_counts(bary_dict):
+    
+    freqs_by_chan = dict()
+    all_bary = []
+    for n_chans in bary_dict.keys():
+        bary_list = []
+        [bary_list.extend(x) for x in bary_dict[n_chans]]
+        all_bary.extend(bary_list)
+        node_counts = dict(sorted(Counter(bary_list).items()))
+        node_counts = list(node_counts.values())
+        freqs_by_chan[n_chans] = node_counts
+        
+    node_counts_all = dict(sorted(Counter(all_bary).items()))
+    node_counts_all = list(node_counts_all.values())
+    
+    return freqs_by_chan, node_counts_all, all_bary
+
+
+def shrink(lst, target):
+    reduction = (sum(lst) - target) // len(lst)
+    lst = [x - reduction for x in lst]
+
+    excess = sum(lst) - target
+    adjusted = lst.copy()
+
+    indices_to_reduce = sorted(
+        range(len(adjusted)), key=lambda i: adjusted[i], reverse=True)[:excess]
+
+    for idx in indices_to_reduce:
+        adjusted[idx] -= 1
+
+    return adjusted
+
+
+def grow(lst, target):
+    growth = (target - sum(lst)) // len(lst)
+    lst = [x + growth for x in lst]
+
+    shortage = target - sum(lst)
+    adjusted = lst.copy()
+
+    indices_to_increase = sorted(range(len(adjusted)), key=lambda i: adjusted[i], reverse=True)[:shortage]
+    for idx in indices_to_increase:
+        adjusted[idx] += 1
+
+    return adjusted
+
 
 def check_not_isomorphism(G1, G2):
     """

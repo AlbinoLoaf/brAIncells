@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 from utils.model_utils import get_adj_mat
+from collections import Counter
 import pandas as pd
 import mne
 #visualisation tools
@@ -143,6 +144,15 @@ def graph_visual(title,G,row,col,idx,pos,bary_list):
     plt.title(title)
     return fig
 
+def bary_histogram(bary_lst,chan,node_labs): 
+        node_counts = dict(sorted(Counter(bary_lst).items()))
+        node_counts = list(node_counts.values())
+        plt.figure(figsize=(10,5))
+        plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
+        plt.title(f"Barycenter bar chart for n_chans={chan}")
+        plt.xlabel("Barycenter")
+        plt.ylabel("Frequency")
+        plt.show()
 
 def bary_hist(bary_list):
 
