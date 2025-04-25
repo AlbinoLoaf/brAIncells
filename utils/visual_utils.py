@@ -148,6 +148,7 @@ def bary_histogram(bary_lst,chan,node_labs):
         node_counts = dict(sorted(Counter(bary_lst).items()))
         node_counts = list(node_counts.values())
         plt.figure(figsize=(10,5))
+        plt.axhline(5)
         plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
         plt.title(f"Barycenter bar chart for n_chans={chan}")
         plt.xlabel("Barycenter")
