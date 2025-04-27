@@ -89,6 +89,51 @@ def get_max_betweeness_nodes(model_dict):
     return betweeness_nodes
 
 
+def get_max_current_flow_betweeness_nodes(model_dict):
+    
+    current_flow_betweeness_nodes = dict()
+    for n_chans in model_dict.keys():
+        
+        curr_models = model_dict[n_chans]   
+        chan_curr_flow_betweeness = []
+        
+        for model in curr_models:
+            curr_adj_mat = mu.get_adj_mat(model)
+            if nx.is_connected(make_graph(curr_adj_mat)):
+                G = make_graph(curr_adj_mat)
+                curr_flow_betweeness_vals = sorted(nx.current_flow_betweenness_centrality(G).items(), key=lambda x:x[1], reverse=True)
+                highest = curr_flow_betweeness_vals[0][1]
+                highest_nodes = [x[0] for x in curr_flow_betweeness_vals if x[1] == highest]
+                chan_curr_flow_betweeness.append(highest_nodes)
+            else:
+                print("graph not connected")
+              
+        current_flow_betweeness_nodes[n_chans] = chan_curr_flow_betweeness
+        
+    return current_flow_betweeness_nodes
+
+def get_max_laplacian_centrality_nodes(model_dict):
+    
+    laplacian_centrality_nodes = dict()
+    for n_chans in model_dict.keys():
+        
+        curr_models = model_dict[n_chans]   
+        chan_laplacian_centrality = []
+        
+        for model in curr_models:
+            
+            curr_adj_mat = mu.get_adj_mat(model)
+            G = make_graph(curr_adj_mat)
+            laplacian_centrality_vals = sorted(nx.laplacian_centrality(G).items(), key=lambda x:x[1], reverse=True)
+            highest = laplacian_centrality_vals[0][1]
+            highest_nodes = [x[0] for x in laplacian_centrality_vals if x[1] == highest]
+            chan_laplacian_centrality.append(highest_nodes)
+            
+        laplacian_centrality_nodes[n_chans] = chan_laplacian_centrality
+        
+    return laplacian_centrality_nodes
+
+
 def get_bary_counts(bary_dict):
     
     freqs_by_chan = dict()
