@@ -165,14 +165,14 @@ def dict_to_counts(d):
         
     return [counts[i] for i in range(22)]
 
-def dict_to_histogram(metric_dict,chan,node_labs): 
+def dict_to_histogram(metric_dict,chan,node_labs, metric_name): 
 
         node_counts = dict_to_counts(metric_dict)
         plt.figure(figsize=(10,5))
         plt.axhline(5)
         plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
-        plt.title(f"Barycenter bar chart for n_chans={chan}")
-        plt.xlabel("Barycenter")
+        plt.title(f"{metric_name} bar chart for n_chans={chan}")
+        plt.xlabel(f"{metric_name}")
         plt.ylabel("Frequency")
         plt.show()
 
