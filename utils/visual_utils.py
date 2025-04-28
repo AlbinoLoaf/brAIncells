@@ -144,9 +144,30 @@ def graph_visual(title,G,row,col,idx,pos,bary_list):
     plt.title(title)
     return fig
 
-def bary_histogram(bary_lst,chan,node_labs): 
-        node_counts = dict(sorted(Counter(bary_lst).items()))
-        node_counts = list(node_counts.values())
+def dict_to_counts(d):
+    
+    nodes = []   
+    for key in d.keys():
+        
+        curr_list = []
+        [curr_list.extend(x) for x in d[key]]
+        nodes.extend(curr_list)
+        
+    counts = Counter(nodes)
+    
+    # check all nodes have at least a count of 1 (appear in the counter)
+    if len(counts.keys()) != 22:
+        
+        # add count of 0 for all nodes that don't appear in the counter
+        for i in range(22):
+            if i not in counts.keys():
+                counts[i] = 0
+        
+    return [counts[i] for i in range(22)]
+
+def dict_to_histogram(metric_dict,chan,node_labs): 
+
+        node_counts = dict_to_counts(metric_dict)
         plt.figure(figsize=(10,5))
         plt.axhline(5)
         plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
