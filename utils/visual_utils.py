@@ -168,9 +168,12 @@ def dict_to_counts(d):
 def dict_to_histogram(metric_dict,chan,node_labs, metric_name): 
 
         node_counts = dict_to_counts(metric_dict)
+        sorted_data = sorted(zip(node_counts, node_labs))
+        node_counts, node_labels = zip(*sorted_data)
+
         plt.figure(figsize=(10,5))
         plt.axhline(5)
-        plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
+        plt.bar(node_labels, node_counts, color="plum", edgecolor="black")
         plt.title(f"{metric_name} bar chart for n_chans={chan}")
         plt.xlabel(f"{metric_name}")
         plt.ylim((0, 110))
