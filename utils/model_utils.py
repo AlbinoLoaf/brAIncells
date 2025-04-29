@@ -82,7 +82,22 @@ def get_preds(model, X):
 
 
 def eval_model(model, X_train, y_train, X_test, y_test):
-
+    """
+    Calculate model accuracy on train and test datasets
+    
+    ...
+    
+    Parameters
+    -----
+    model: torcheeg.models DGCNN
+    X_train, y_train, X_test, y_test: torch.FloatTensor
+        Data to predict classes for and corresponding true labels
+    
+    Returns
+    -----
+    acc_train, acc_test, acc_train-acc_test: float
+        Calculated train and test accuracy and the difference between them
+    """
     preds_train = get_preds(model, X_train)
     preds_test = get_preds(model, X_test)
         
@@ -95,6 +110,22 @@ def eval_model(model, X_train, y_train, X_test, y_test):
 
 
 def get_all_models(model_dict):
+    """
+    Extract model objects from seed channel dict to list
+    
+    ...
+    
+    Parameters
+    -----
+    model_dict: dict
+        Dictionary of the form dict[seed][channels] containing 
+        the trained model objects (torcheeg.models DGCNN objects)
+    
+    Returns
+    -----
+    models: list
+        List of all the model objects from the dictionary
+    """
     
     models = []
     
@@ -110,6 +141,26 @@ def get_all_models(model_dict):
     return models
 
 def avg_performance(models, X_train, y_train, X_test, y_test, prints=True):
+    """
+    Calculate average model accuracy across all models
+    
+    ...
+    
+    Parameters
+    -----
+    models: list
+        List of torcheeg.models DGCNN model objects
+    X_train, y_train, X_test, y_test: torch.FloatTensor
+        Data to predict classes for and corresponding true labels
+    prints: bool
+        Whether to print results
+    
+    Returns
+    -----
+    train_avg, test_avg, difs_avg, train_std, test_std, difs_std : float
+        Calculated average train, test and train-test accuracy and the 
+        standard deviations
+    """
     
     N = len(models)
     train_accs = np.zeros(N); test_accs = np.zeros(N); difs = np.zeros(N)
@@ -133,7 +184,23 @@ def avg_performance(models, X_train, y_train, X_test, y_test, prints=True):
     return train_avg, test_avg, difs_avg, train_std, test_std, difs_std 
 
 
-def read_saved_models(saved_path):    
+def read_saved_models(saved_path):
+    """
+    Read saved model objects from specified path 
+    
+    ...
+    
+    Parameters
+    -----
+    saved_path: str
+        Path where model objects are saved
+    
+    Returns
+    -----
+    model_objects : dict
+        Dictionary containing read model objects in the form dict[seed][n_chans]
+        (where each dict[seed] contains a dictionary organised by number of channels)
+    """
     main_folder_files = []
     for folder in os.listdir(saved_path):
         if "gpuerror" not in folder:
@@ -143,12 +210,10 @@ def read_saved_models(saved_path):
 
     model_objects = dict()
     for folder_name, folder_files, seed in main_folder_files:
-        #print(f"for seed = {seed}")
         model_objects[seed] = dict()
         for file_name in folder_files:
 
             if file_name[:5] == "model":
-                #print(f"file_name: {file_name} - MODEL file")
                 chans = int(file_name.split("_")[2])
                 full_model_path = saved_path + "/" + folder_name + "/" + file_name
                 
@@ -163,6 +228,28 @@ def read_saved_models(saved_path):
 
 
 def metrics_by_chans(model_dict, get_external=False):
+    """
+    Get graph model metrics from model object dict
+    
+    ...
+    
+    Parameters
+    -----
+    model_dict: dict
+        Dictionary of the form dict[seed][channels] containing 
+        the trained model objects (torcheeg.models DGCNN objects)
+    get_external: bool
+        Whether to return two model metrics (graph edit distance,
+        isomorphism check)
+    
+    Returns
+    -----
+    model_by_chans, barycenters_by_chans, sims_by_chans: dict
+        Dictionary containing graph metrics of the form dict[n_chans]
+    isomorphism_by_chans, geds_by_chans: dict
+        Dictionary containing GED and isomorphism check results of the form dict[n_chans]
+        Only returned when get_external is set to True
+    """
     
     model_by_chans = dict()
     for curr_seed in model_dict.keys():
@@ -246,6 +333,27 @@ def model_metrics(model, X_train, y_train, X_test, y_test, X_val=None, y_val=Non
     return acc_train,f1_train,acc_test,f1_test
 
 def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
+    """
+    Return average confusion matrix over all models for train and test sets  
+    
+    ...
+    
+    Parameters
+    -----
+    modlist: list
+        List of torcheeg.models DGCNN models
+    X_train, X_test: torch.FloatTensor
+        Input features for the train and test sets
+    y_train, y_test: torch.FloatTensor
+        Output labels for the train and test sets
+    plots: bool
+        Whether to print the confusion matrix plots
+        
+    Returns
+    -----
+    conf_mats_train, conf_mats_test: np.ndarray
+        Average confusion matrices for train and test sets
+    """
     conf_mats_train = np.zeros((4, 4))
     conf_mats_test = np.zeros((4, 4))
 
@@ -275,56 +383,6 @@ def confusiong_avg(modlist, X_train, y_train, X_test, y_test, plots=True):
         plt.show()
 
     return conf_mats_train, conf_mats_test
-
-
-def multi_parameter_mod(param_list, n_models):
-    # TO DO: take into account seeds. Right now the seed_list doesn't do anything
-    # all combinations of model indexes between two parameter sets
-    # ex all model combinations between models with 8 hidden neurons and models with 16 hidden neurons
-    
-    
-    combs_external =[
-        (i, j)
-        for i in range(n_models)
-        for j in range(n_models, 2 * n_models)
-        ]
-    #combs_external = list(itertools.product([x for x in range(n_models)], [x+n_models for x in range(n_models)]))
-    # all combinations of parameter values, in this case number of hidden neurons
-    param_combs = [
-        (param_list[i], param_list[j]) 
-        for i in range(0,   len(param_list)) 
-        for j in range(i+1, len(param_list))]
-    
-    models_dict, bary_dict, sim_dict, edit_dists_internal = internal_dict(param_list)
-    edit_dists_external = lst_to_dict(param_combs)   #Graph metric dict n for GED between different param models
-    
-    # train n_models models with each number of hidden neurons specified in the param_list
-    for n_chans in param_list:
-        a=0
-        #curr_model = [x[0] for x in train_models(DGCNN, TrainNN, n_chans, seed_list, num_models = n_models,prints=plot, new=False)]
-        #models_dict[n_chans].extend(curr_model)
-    
-    # calculate all metrics for models with the same number of hidden neurons
-    for n_chans in param_list:
-        models = models_dict[n_chans]
-        bary, sim, _, ed = gu.get_graph_metrics(models, prints=False)
-        bary_dict[n_chans].extend(bary)
-        sim_dict[n_chans].extend(sim)
-        edit_dists_internal[n_chans].extend(ed)
-    
-    # calculate edit distance between models with different number of hidden neurons
-    for param_comb in param_combs:
-        for ext_comb in combs_external:
-            model1_idx = ext_comb[0]; model2_idx = ext_comb[1]
-            model1 = models_dict[param_comb[0]][model1_idx]
-            model2 = models_dict[param_comb[1]][model2_idx-n_models]
-            G1 = gu.make_graph(mu.get_adj_mat(model1))
-            G2 = gu.make_graph(mu.get_adj_mat(model2))
-            ed_external = next(nx.optimize_graph_edit_distance(G1, G2))
-            edit_dists_external[param_comb].append(ed_external)
-
-    return models_dict, bary_dict, sim_dict, edit_dists_internal, edit_dists_external
-
 
 
 
