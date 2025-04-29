@@ -173,6 +173,7 @@ def dict_to_histogram(metric_dict,chan,node_labs, metric_name):
         plt.bar(node_labs, node_counts, color="plum", edgecolor="black")
         plt.title(f"{metric_name} bar chart for n_chans={chan}")
         plt.xlabel(f"{metric_name}")
+        plt.ylim((0, 110))
         plt.ylabel("Frequency")
         plt.show()
 
