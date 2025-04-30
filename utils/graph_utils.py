@@ -51,7 +51,7 @@ def get_barycenter(adj):
     AKA the center of the graph
     If multiple nodes tie for the smallest distance, then all of them are returned (as a list)
     
-     Parameters
+    Parameters
     -----------
     adj: torch matrix
         Adjacency matrix of graph
@@ -68,7 +68,21 @@ def get_barycenter(adj):
 
 
 def get_max_betweeness_nodes(model_dict):
+    """
+    Get nodes with highest betweeness centrality for each model
     
+    Parameters
+    -----------
+    model_dict: dict
+        Dictionary of the form dict[seed][channels] containing 
+        the trained model objects (torcheeg.models DGCNN objects)
+        
+    Returns
+    -----
+    betweeness_nodes: dict
+        The node(s) that has the highest betweeness centrality for each model
+        Dictionary of the form dict[channels]
+    """
     betweeness_nodes = dict()
     for n_chans in model_dict.keys():
         
@@ -90,7 +104,21 @@ def get_max_betweeness_nodes(model_dict):
 
 
 def get_max_current_flow_betweeness_nodes(model_dict):
+    """
+    Get nodes with highest current flow betweeness centrality for each model
     
+    Parameters
+    -----------
+    model_dict: dict
+        Dictionary of the form dict[seed][channels] containing 
+        the trained model objects (torcheeg.models DGCNN objects)
+        
+    Returns
+    -----
+    current_flow_betweeness_nodes: dict
+        The node(s) that has the highest current flow betweeness centrality for each model
+        Dictionary of the form dict[channels]
+    """
     current_flow_betweeness_nodes = dict()
     for n_chans in model_dict.keys():
         
@@ -113,6 +141,21 @@ def get_max_current_flow_betweeness_nodes(model_dict):
     return current_flow_betweeness_nodes
 
 def get_max_laplacian_centrality_nodes(model_dict):
+    """
+    Get nodes with highest Laplacian centrality for each model
+    
+    Parameters
+    -----------
+    model_dict: dict
+        Dictionary of the form dict[seed][channels] containing 
+        the trained model objects (torcheeg.models DGCNN objects)
+        
+    Returns
+    -----
+    laplacian_centrality_nodes: dict
+        The node(s) that has the highest Laplacian centrality for each model
+        Dictionary of the form dict[channels]
+    """
     
     laplacian_centrality_nodes = dict()
     for n_chans in model_dict.keys():
@@ -135,7 +178,25 @@ def get_max_laplacian_centrality_nodes(model_dict):
 
 
 def get_bary_counts(bary_dict):
+    """
+    Get barycenter counts by channel, overall, and the raw barycenter values
     
+    Parameters
+    -----------
+    bary_dict: dict
+        Dictionary of the form dict[channels] containing the
+        barycenters for the model adj matrices
+        
+    Returns
+    -----
+    freqs_by_chan: dict
+        The node(s) that are the barycenter for each model, gruped by channels
+        Dictionary of the form dict[channels]
+    node_counts_all: list
+        Counts for each electrode being a barycenter (for all the models)
+    all_bary: list
+        Raw barycenter values (electrode labels) for all models as a list
+    """
     freqs_by_chan = dict()
     all_bary = []
     for n_chans in bary_dict.keys():
@@ -285,7 +346,27 @@ def simrank_to_matrix(sim):
             mat[i, j] = sim[i][j]
     return mat
 
+
 def get_graph_metrics_internal(mod_list, prints=False):
+    """
+    Get one graph metrics (barycenter, simrank)
+    
+    
+    Parameters
+    --------
+    mod_list: list
+        List of model objects (torcheeg.models DGCNN)
+    prints: bool
+        Whether to print the barycenters for each model
+        
+    Returns
+    --------
+    barycenters: list
+        List of barycenters for models in mod_list
+    simrank_similarities: list
+        List of simrank similarities (as dicts) for models in mod_list
+    
+    """
 
     barycenters = []; simrank_similarities = []
     
@@ -308,7 +389,27 @@ def get_graph_metrics_internal(mod_list, prints=False):
     
     return barycenters, simrank_similarities
 
+
 def get_graph_metrics_external(mod_list, prints=False):
+    """
+    Get two graph metrics (isomorphism check, graph edit distance)
+    
+    
+    Parameters
+    --------
+    mod_list: list
+        List of model objects (torcheeg.models DGCNN)
+    prints: bool
+        Whether to print the metrics
+        
+    Returns
+    --------
+    isomorphism_checks: list
+        List of isomorphism check results for all model pairs (bool)
+    geds: list
+        List of graph edit distance (approximation) for all model pairs
+    
+    """
     
     isomorphism_checks = []; geds = []
     graphs = [make_graph(mu.get_adj_mat(mod_list[i])) for i in range(len(mod_list))]
