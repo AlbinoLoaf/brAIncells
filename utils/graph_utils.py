@@ -3,7 +3,8 @@ import torch
 import numpy as np
 from torcheeg.models.gnn.dgcnn import GraphConvolution
 from utils.cka import HookManager
-import utils.model_utils as mu 
+import utils.model_utils as mu
+import utils.visual_utils as vu
 from collections import Counter
 
 
@@ -433,3 +434,15 @@ def get_graph_metrics_external(mod_list, prints=False):
                 if prints:
                     print(f"GED (approx): {approx_ged}")
     return isomorphism_checks, geds
+
+
+def get_sorted_metrics(metric_dict, node_labels, ascending=True):
+    
+    node_counts = vu.dict_to_counts(metric_dict)
+    
+    sorted_data = sorted(zip(node_counts, node_labels))
+    node_counts_sorted, node_labels_sorted = zip(*sorted_data)
+    
+    assert set(node_labels_sorted) == set(node_labels)
+        
+    return list(node_counts_sorted), list(node_labels_sorted)

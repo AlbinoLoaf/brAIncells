@@ -61,3 +61,101 @@ def multi_parameter_mod(param_list, n_models):
             edit_dists_external[param_comb].append(ed_external)
 
     return models_dict, bary_dict, sim_dict, edit_dists_internal, edit_dists_external
+
+
+def get_graph_metrics_internal(mod_list, prints=False):
+
+    barycenters = []; simrank_similarities = []
+    
+    # Barycenters and simrank similarity
+    for i in range(len(mod_list)):
+        
+        curr_adj = mu.get_adj_mat(mod_list[i])
+        if nx.is_connected(make_graph(curr_adj)):
+            curr_barycenter = get_barycenter(curr_adj)
+            barycenters.append(curr_barycenter)
+        else:
+            print("graph not connected")
+        G = make_graph(curr_adj)
+        sim = get_simrank_similarity(G) # not printing because it's a huge dict of all node pair simiarities
+        simrank_similarities.append(sim)
+        
+        if prints:
+            print(f"---For model idx {i}---")
+            print(f"Barycenter: {curr_barycenter}")
+    
+    return barycenters, simrank_similarities
+
+
+def get_graph_metrics_external(mod_list, prints=False):
+    
+    isomorphism_checks = []; geds = []
+    graphs = [make_graph(mu.get_adj_mat(mod_list[i])) for i in range(len(mod_list))]
+    
+    # Isomorphism check and graph edit distance
+    for i in range(len(mod_list)):
+        for j in range(i+1, len(mod_list)):
+            G1 = graphs[i]
+            G2 = graphs[j]
+            
+            is_isomorphic = not check_not_isomorphism(G1, G2)
+            isomorphism_checks.append(is_isomorphic)
+            if prints:
+                print(f"---Graphs for model {i} and model {j}---")
+                print(f"Is isomorphic: {is_isomorphic}")
+            
+            # if graphs are not isomorphic, get approximation of their edit distance
+            if is_isomorphic == False:
+                approx_ged = next(nx.optimize_graph_edit_distance(G1, G2))
+                geds.append(approx_ged)
+                if prints:
+                    print(f"GED (approx): {approx_ged}")
+    return isomorphism_checks, geds
+
+def get_sorted_metrics(metric_dict, node_labels, ascending=True):
+    
+    # this function seems overcomplicated for sorting the count values and returning the original 
+    # electrode labels but duplicates fuck up everything in mapping the labels back
+    # feel free to better rewrite this function
+    
+    def match(x, lst):
+    
+        return [i for i in range(len(lst)) if lst[i] == x]
+
+    all_counts = vu.dict_to_counts(metric_dict)
+
+    if ascending:
+        metric_sorted = sorted(all_counts)
+    else:
+        metric_sorted = sorted(all_counts, reverse=True)
+
+    idx_sorted = [match(x, all_counts) for x in metric_sorted]
+    
+    # duplicates case
+    if not all([len(x) == 1 for x in idx_sorted]):
+        idx_sorted_new = []
+        curr_idxs = dict()
+        for i in range(len(idx_sorted)):
+            if len(idx_sorted[i]) == 1:
+                idx_sorted_new.extend(idx_sorted[i])
+            else:
+                if all_counts[idx_sorted[i][0]] not in curr_idxs.keys():
+                    curr_idxs[all_counts[idx_sorted[i][0]]] = 0
+                idx_sorted_new.append(idx_sorted[i][curr_idxs[all_counts[idx_sorted[i][0]]]])
+                curr_idxs[all_counts[idx_sorted[i][0]]] += 1  
+        idx_sorted = idx_sorted_new
+    else:
+        idx_sorted_new = []
+        [idx_sorted_new.extend(x) for x in idx_sorted]
+        idx_sorted = idx_sorted_new
+
+    # it is possible to not have all labels if there's 2 electrodes
+    # with the same count because index takes the first matching index
+    assert set(idx_sorted) == set(range(22))
+
+    labels_sorted = [node_labels[x] for x in idx_sorted]
+    
+    # check counts and labels in bary_sorted match original counts and labels
+    assert all([all_counts[idx_sorted[i]] == metric_sorted[i] for i in range(22)])
+    
+    return metric_sorted, labels_sorted
