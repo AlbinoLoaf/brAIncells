@@ -131,6 +131,26 @@ def get_sorted_metrics(metric_dict, node_labels, ascending=True):
 
     idx_sorted = [match(x, all_counts) for x in metric_sorted]
     
+def sign_test(x, y, alternative="two-sided"):
+    
+    x = np.array(x); y = np.array(y)
+    difs = x - y
+    
+    difs = difs[difs != 0]
+    S = np.sum([difs > 0])
+    
+    p = stats.binom.cdf(k=S, n=len(difs), p=0.5)
+    if alternative == "two-sided":
+        p = 2 * p
+    elif alternative == "bigger":
+        p = 1 - p
+    elif alternative != "less":
+        raise Exception("Invalid value for test. Options are 'two-sided', 'less', 'bigger'")
+     
+    print(f"S statistic: {S}")
+    print(f"P-value: {p:.3g}")
+    return S, p
+    
     # duplicates case
     if not all([len(x) == 1 for x in idx_sorted]):
         idx_sorted_new = []
