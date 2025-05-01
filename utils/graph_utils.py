@@ -215,6 +215,21 @@ def get_bary_counts(bary_dict):
 
 
 def shrink(lst, target):
+    """
+    Takes a list and shrinks it uniformly to hit the target, if it cannot shrink uniformly it will suptract to the most populated arrays first
+
+    Parameters
+    --------
+    lst : list 
+        A list of synthetic data counts
+    target : int
+        The target for how much it is shrinking 
+
+    Returns
+    ---------
+    adjusted : list 
+         new list to be used instead of the old list    
+    """
     reduction = (sum(lst) - target) // len(lst)
     lst = [x - reduction for x in lst]
 
