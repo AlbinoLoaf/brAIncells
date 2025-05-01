@@ -231,6 +231,21 @@ def shrink(lst, target):
 
 
 def grow(lst, target):
+    """
+    Takes a list and gows it uniformly to hit the target, if it cannot grow uniformly it will add to the most populated arrays
+
+    Parameters
+    --------
+    lst : list 
+        A list of synthetic data counts
+    target : int
+        The target for how much it is growing 
+
+    Returns
+    ---------
+    adjusted : list 
+         new list to be used instead of the old list    
+    """
     growth = (target - sum(lst)) // len(lst)
     lst = [x + growth for x in lst]
 
