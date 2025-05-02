@@ -237,7 +237,8 @@ def plot_loss_curves(path, mods):
         plt.legend(["training loss","validation loss"])
         plt.title(f"Model{i} Training vs validation loss")
         plt.show()
-        
+
+#redundant code; we can remove this        
 def mne_plot(node_labels_path):
 
     node_labels = pd.read_csv(node_labels_path, sep="\t")
@@ -254,3 +255,20 @@ def mne_plot(node_labels_path):
     raw.set_montage(montage)
 
     raw.plot_sensors(kind='topomap', show_names=True)
+
+
+def make_topo(plot_data, title):
+    node_labels = pd.read_csv("node_names.tsv", sep="\t")
+    node_labels = list(node_labels['name'])
+    info = mne.create_info(ch_names=node_labels, sfreq=1, ch_types='eeg')
+    plot_data = np.array(plot_data)
+    if plot_data.ndim == 1:
+        plot_data = plot_data[:, None]
+    raw = mne.EvokedArray(plot_data, info)
+    montage = mne.channels.make_standard_montage('standard_1020')
+    raw.set_montage(montage)
+    fig = raw.plot_topomap(show=False, times=[0], colorbar=True, vlim=(0, 110), 
+                           scalings={'eeg': 1}, units=" ", size=2.5, cmap="bwr", 
+                           show_names=False, sensors=False)
+    fig.suptitle(title, fontsize=15) 
+    return fig
