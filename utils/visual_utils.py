@@ -165,20 +165,48 @@ def dict_to_counts(d):
         
     return [counts[i] for i in range(22)]
 
-def dict_to_histogram(metric_dict,chan,node_labs, metric_name): 
+def dict_to_histogram(metric_dict,untr_metric_dict,chan,node_labs, metric_name): 
 
         node_counts = dict_to_counts(metric_dict)
         sorted_data = sorted(zip(node_counts, node_labs))
         node_counts, node_labels = zip(*sorted_data)
 
-        plt.figure(figsize=(10,5))
-        plt.axhline(5)
-        plt.bar(node_labels, node_counts, color="plum", edgecolor="black")
-        plt.title(f"{metric_name} bar chart for n_chans={chan}")
-        plt.xlabel(f"{metric_name}")
-        plt.ylim((0, 110))
-        plt.ylabel("Frequency")
+        untr_node_counts = dict_to_counts(untr_metric_dict)
+        label_to_count = dict(zip(node_labs, untr_node_counts))
+        reordered_counts = [label_to_count[label] for label in node_labels]        
+        
+        fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 7), sharey=True)
+        ax[0].axhline(5)
+        ax[0].bar(node_labels, node_counts, color="plum", edgecolor="black")
+        ax[0].set_title(f"{metric_name} bar chart for n_chans={chan}")
+        ax[0].set_xlabel(f"{metric_name}")
+        ax[0].set_ylim((0, 110))
+        ax[0].set_ylabel("Frequency")
+
+        ax[1].axhline(5)
+        ax[1].bar(node_labels, reordered_counts, color="mediumpurple", edgecolor="black")
+        ax[1].set_title(f"{metric_name} bar chart for n_chans={chan}")
+        ax[1].set_xlabel(f"{metric_name}")
+        ax[1].set_ylim((0, 110))
+        ax[1].set_ylabel("Frequency")
+        
+        plt.tight_layout()
         plt.show()
+
+def dict_to_histogram_with_order(metric_dict, chan, node_labs, metric_name, label_order): 
+    node_counts = dict_to_counts(metric_dict)
+    label_to_count = dict(zip(node_labs, node_counts))
+    reordered_counts = [label_to_count[label] for label in label_order]
+
+    plt.figure(figsize=(10,5))
+    plt.axhline(5)
+    plt.bar(label_order, reordered_counts, color="mediumpurple", edgecolor="black")
+    plt.title(f"{metric_name} bar chart for n_chans={chan}")
+    plt.xlabel(f"{metric_name}")
+    plt.ylim((0, 110))
+    plt.ylabel("Frequency")
+    plt.show()
+
 
 def bary_hist(bary_list):
 
@@ -238,6 +266,24 @@ def plot_loss_curves(path, mods):
         plt.title(f"Model{i} Training vs validation loss")
         plt.show()
 
+
+
+def make_topo(plot_data, title):
+    node_labels = pd.read_csv("node_names.tsv", sep="\t")
+    node_labels = list(node_labels['name'])
+    info = mne.create_info(ch_names=node_labels, sfreq=1, ch_types='eeg')
+    plot_data = np.array(plot_data)
+    if plot_data.ndim == 1:
+        plot_data = plot_data[:, None]
+    raw = mne.EvokedArray(plot_data, info)
+    montage = mne.channels.make_standard_montage('standard_1020')
+    raw.set_montage(montage)
+    fig = raw.plot_topomap(show=False, times=[0], colorbar=True, vlim=(0, 110), 
+                           scalings={'eeg': 1}, units=" ", size=2.5, cmap="coolwarm", 
+                           show_names=False, sensors=False)
+    fig.suptitle(title, fontsize=15) 
+    return fig
+
 #redundant code; we can remove this        
 def mne_plot(node_labels_path):
 
@@ -255,20 +301,3 @@ def mne_plot(node_labels_path):
     raw.set_montage(montage)
 
     raw.plot_sensors(kind='topomap', show_names=True)
-
-
-def make_topo(plot_data, title):
-    node_labels = pd.read_csv("node_names.tsv", sep="\t")
-    node_labels = list(node_labels['name'])
-    info = mne.create_info(ch_names=node_labels, sfreq=1, ch_types='eeg')
-    plot_data = np.array(plot_data)
-    if plot_data.ndim == 1:
-        plot_data = plot_data[:, None]
-    raw = mne.EvokedArray(plot_data, info)
-    montage = mne.channels.make_standard_montage('standard_1020')
-    raw.set_montage(montage)
-    fig = raw.plot_topomap(show=False, times=[0], colorbar=True, vlim=(0, 110), 
-                           scalings={'eeg': 1}, units=" ", size=2.5, cmap="bwr", 
-                           show_names=False, sensors=False)
-    fig.suptitle(title, fontsize=15) 
-    return fig
