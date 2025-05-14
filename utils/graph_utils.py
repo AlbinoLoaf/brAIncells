@@ -476,3 +476,14 @@ def get_sorted_metrics(metric_dict, node_labels, ascending=True):
     assert set(node_labels_sorted) == set(node_labels)
         
     return list(node_counts_sorted), list(node_labels_sorted)
+
+def get_centers(lst):
+    bary_list = []
+    [bary_list.extend(x) for x in lst]
+    return bary_list
+
+def group_barycenters(lst,mapper):
+    return list(map(mapper,lst))
+
+def FCCPP_group(lst):
+    return group_barycenters(lst,lambda a: 1 if a<6 else 2 if a<13 else 3 if a <18 else 4)
