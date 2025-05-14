@@ -278,8 +278,8 @@ def make_topo(plot_data, title):
     raw = mne.EvokedArray(plot_data, info)
     montage = mne.channels.make_standard_montage('standard_1020')
     raw.set_montage(montage)
-    fig = raw.plot_topomap(show=False, times=[0], colorbar=True, vlim=(0, 110), 
-                           scalings={'eeg': 1}, units=" ", size=2.5, cmap="coolwarm", 
+    fig = raw.plot_topomap(show=False, times=[0], colorbar=True, vlim=(0, 120), 
+                           scalings={'eeg': 1}, units=" ", size=2.5, cmap="Reds", 
                            show_names=False, sensors=False)
     fig.suptitle(title, fontsize=15) 
     return fig
