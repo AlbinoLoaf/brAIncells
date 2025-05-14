@@ -186,7 +186,7 @@ def run_models_hpc(param_list, n_runs, dict_model_arch, dict_training, dict_mode
         run_idx += 1
 
 PARAM_LIST = [8, 16, 24]
-MODELS_PER_PARAM = 9
+num_seeds = 9
 
 run_models_hpc(PARAM_LIST, MODELS_PER_PARAM, model_arch, train_dict, model_meta)
 
