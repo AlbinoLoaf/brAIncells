@@ -19,9 +19,13 @@ To run the experiments with new models there is a script version of the code run
 ## Setup 
 We are working in a conda inviroment with python 3.10, with the "requirements.txt" file describing package requirements. 
 
+
+## Authors
+
 | Author name           | author alias |
 | --------------------- | ------------ |
 | Cristina "Keli" Avram | keli1111     |
 | Lili Y. Raleva        | liliraleva   |
 | Marius Thomsen        | AlbinoLoaf   |
 
+Supervised by Laurits Dixen
