@@ -1,3 +1,9 @@
+"""
+Author: Cristina Avram, Lili Ravela & Marius Thomsen
+based on and heavyly altered from:
+Repo: https://github.com/numpee/CKA.pytorch
+Author: Dongwan Kim (Github: Numpee)
+"""
 import numpy as np
 import torch
 import torch.nn as nn
