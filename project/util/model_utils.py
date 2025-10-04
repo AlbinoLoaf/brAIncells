@@ -41,32 +41,69 @@ def get_all_models(model_dict):
         
     return models
 
-def read_saved_models(saved_path):
-    model_objects = {}
+
+
+
+
+
+def read_all_models(saved_path, test_parameter, baseline):
+    """
+    Load all models organized by tested hyperparameter.
+    
+    Returns:
+        models[param_value] = [model1, model2, ...]
+    """
+    models = {}
 
     for folder in os.listdir(saved_path):
         if "gpuerror" in folder:
             continue
 
         folder_path = os.path.join(saved_path, folder)
-        folder_seed = int(folder.split("_")[-1])
-        model_objects[folder_seed] = {}
+        seed_str = folder.split("_")[-1]
+        try:
+            seed = int(seed_str)
+        except ValueError:
+            print(f"Invalid folder name: {folder_path}")
+            continue
 
         for file_name in os.listdir(folder_path):
             if not file_name.startswith("model"):
                 continue
 
-            full_model_path = os.path.join(folder_path, file_name)
-            checkpoint = torch.load(full_model_path, map_location='cpu')
+            full_path = os.path.join(folder_path, file_name)
+            saveobj = torch.load(full_path, map_location='cpu')
+            params = saveobj['params']
 
-            params = checkpoint['params']
-            model = DGCNN(**params)
-            model.load_state_dict(checkpoint['model_state'])
+            # Check if baseline matches all except test param
+            is_valid = True
+            for key in baseline.keys():
+                if key == test_parameter:
+                    continue
+                if baseline[key] != params[key]:
+                    is_valid = False
+                    break
 
-            chans = params.get('num_electrodes', 22)  # or parse from filename if needed
-            model_objects[folder_seed][chans] = model
+            if not is_valid:
+                continue
 
-    return model_objects
+            test_value = params[test_parameter]
+
+            # Initialize model with correct parameters
+            init_params = baseline.copy()
+            init_params[test_parameter] = test_value
+            model = DGCNN(**init_params)
+            model.load_state_dict(saveobj['model_state'])
+            model.params = params
+            model.eval()
+
+            # Store in dict
+            if test_value not in models:
+                models[test_value] = []
+            models[test_value].append(model)
+
+    return models
+
 
 # def read_saved_models(saved_path):
 #     """
