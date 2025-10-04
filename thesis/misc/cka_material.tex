@@ -1,0 +1,58 @@
+
+\subsection{Centred Kernel Alignment background }\label{CKA}
+CKA is a kernel-based similarity measure used to quantify how closely the learned representations of two neural networks align. Originally introduced for comparing representations in deep learning, CKA offers several advantages: it is invariant to isotropic scaling, linear transformations, and orthogonal transformations, making it a robust metric for similarity (\cite{Hinton}).
+\vspace{0.5em}\\
+In this project, we use linear CKA, which begins by computing centred Gram matrices for the activations of each model. These matrices capture pairwise similarities between data points in the representation space. The CKA score is then computed using a normalised version of the Hilbert-Schmidt Independence Criterion (HSIC), resulting in a single similarity value between the two models’ representations.
+\vspace{0.5em}\\
+To evaluate similarity across multiple models, we compute a full CKA matrix comparing all layer combinations between pairs of models. Each row and column corresponds to a specific layer in a specific model. Diagonal entries of this matrix represent comparisons between the same layers across models and thus reflect their consistency under different initialisations.
+
+\subsection{Centred Kernel Alignment method}
+We have seen a lot of promising results from centrality measures to verify that these observations are justified. We apply the CKA metric (\cite{Hinton}) to quantify representational similarity between neural network layers, adapting the PyTorch-based implementation from (\cite{numpeecka}). Our version emphasises transparency, readability and computational efficiency, especially for small-scale datasets. Key modifications to the original approach:
+
+\begin{itemize}
+    \item \textbf{Single-Epoch Computation}: CKA is computed only at the final training epoch to reduce runtime and ensure that the analysis reflects the model's final representational state.
+    \item \textbf{Fixed-Sample Evaluation}: Evaluation is restricted to the first $N=500$ data points, balancing memory usage with statistical reliability.
+    \item \textbf{Simplified Hook Management}: Gram matrices are computed on demand using manually registered hooks, minimizing use complexity.
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{Advantage} & \textbf{Limitation} \\
+        \hline
+        Fixed memory usage & Potential sampling bias \\
+        Deterministic results & Higher variance vs. multi-epoch \\
+        Simplified debugging & Less scalable \\
+        \hline
+    \end{tabular}
+    \caption{Design Trade-offs}
+\end{table}
+
+\subsubsection{Computational Workflow}
+
+The CKA analysis pipeline consists of three stages:\\
+\textbf{1. Model Pair Selection}: Comparing every model $m_i$ to every other $m_j$ exactly once 
+\vspace{0.5em}\\
+\textbf{2. CKA Calculation}: For each pair of layers in the models', we compute Gram matrices and normalize the Hilbert-Schmidt Independence Criterion (HSIC):
+\begin{verbatim}
+K = gram_matrix(X.flatten(start_dim=1))
+L = gram_matrix(Y.flatten(start_dim=1))
+cka_matrix[i, j] = hsic(K, L) / (hsic(K, K).sqrt() * hsic(L, L).sqrt())
+\end{verbatim}
+\vspace{0.5em}
+\textbf{3. Aggregation}: Average CKA
+\begin{align}
+\bar{\mathbf{M}} &= \frac{1}{n}\sum_{i=1}^n \mathbf{M}_i \\
+\end{align}
+These three stages provide us with the average CKA.
+
+\subsection{CKA Results discussion}
+When using CKA, we assess how similar the internal activations of two models are, layer by layer. This provides a high-level abstraction view of representational similarity without requiring exact alignment between individual neurons. CKA is useful for comparing models trained on the same task but with different random initialisations.
+\vspace{0.5em}\\
+In our analysis, the diagonal values of the CKA matrices are of primary interest. These compare the same layer across different models. High diagonal values indicate that different models tend to learn similar representations at corresponding depths, suggesting a degree of stability and shared internal structure. The off-diagonal values, which compare layers at different depths, are less relevant here, as our focus is on layer wise consistency rather than cross-layer relationships.
+\vspace{0.5em}\\
+On average, the top three layers yield CKA scores of over 0.9, while the final two remain relatively high, around 0.8. This consistency supports the assumption that the underlying learned graphs are likely to exhibit structural or functional similarities, though not exact equivalence.
+\subsection{CKA and Graph Metrics in Relation to Similarity}
+While CKA provides a measure of representational similarity between models, it does not directly reflect the underlying graph structures produced by the DGCNN. Instead, CKA evaluates how similarly two models organise information in their internal activations, independent of specific neuron or node alignments. We performed CKA comparisons across the first 10 seeds, resulting in 90 pairwise similarity matrices. These were averaged into a single CKA matrix, which also showed high values along the diagonal, indicating that different model instances tend to learn similarly structured representations at corresponding layers. However, this similarity in activations does not necessarily imply structural similarity at the graph level, such as consistent importance of specific nodes or edges. To investigate that aspect, we turn to graph metrics such as graph centrality measures. \\
+The CKA requires data to be passed through the model in order to compute representation similarity. We use the test dataset for this purpose, as it offers a more reliable evaluation of model performance. One important note about our CKA implementation is that it includes a slight sampling bias: to ensure consistent and reasonable run times, we only evaluate the first half of the test dataset (500 datapoints).

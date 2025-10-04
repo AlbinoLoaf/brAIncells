@@ -1,0 +1,166 @@
+In this project, we construct and analyse graph representations of EEG signals using the DGCNN architecture. We work with a benchmark motor imagery dataset, preprocess it, train a GNN, and finally evaluate the structural properties of the learned graphs. The following sections walk through each step of this process.
+\subsection{Dataset}
+The data, which we are working with for the duration of our project, comes from the \texttt{BNCI 2014-001} motor imagery dataset from the \texttt{MOABB} benchmark library (\cite{moabb}). It consists of 5184 trials of EEG data, collected from 9 subjects. The task assigned to the subjects whose brain activity was documented prompted them to perform different motor imagery tasks. The participants were asked to perform four different tasks, imagining movement of their feet, left hand, right hand or tongue.
+\vspace{0.5em}\\
+The dataset was originally released in \cite{dataset} as a part of the BCI (Brain Computer Interface) competition IV, aiming to provide high quality data openly accessible to the scientific community. This dataset is commonly used as a benchmark, being present in various publications, as well as the Python EEG benchmark library MOABB (\cite{moabb}).
+\\
+This dataset provides us with a working domain that is well explored and a type of task that is well understood allowing us to focus on our primary concern, graph stability. 
+% image of electrodes positions from MNE would be super nice 
+\subsection{Data preprocessing}
+As the dataset is well-known, several preprocessing steps are standard for ensuring meaningful downstream learning. EEG data presents challenges due to its high dimensionality and low signal-to-noise ratio. To facilitate model training and improve learning efficiency, we applied a frequency-band decomposition based on the five canonical EEG frequency bands: delta, theta, alpha, beta, and gamma (\cite{EEGWaves}).
+\vspace{0.5em}\\
+In order to apply this transformation, we used the \texttt{BandDifferentialEntropy} transform from the \texttt{torcheeg} Python library (\cite{torcheeg}). The function first filters the input EEG data into the specified sub-bands. The differential entropy value is calculated for each sub-band using Equation \ref{bandentropy}:
+\begin{equation}\label{bandentropy}
+    H(x) = \frac{1}{2}log_2(2\pi e \sigma^2)
+\end{equation}
+Where $\sigma^2$ is the variance of the signal within a given sub-band. The result is a new feature matrix of the shape \texttt{samples} $\times$ \texttt{channels} $\times$ \texttt{bands}. This matrix, in turn, serves as input for the training of our artificial neural network model.
+\subsection{Model Training}
+We employed the DGCNN implementation from the \texttt{torcheeg} library (\cite{torcheeg}), with training and model architecture hyperparameters summarised in Table \ref{tab:parameters}.
+\vspace{0.5em}\\
+The \text{torcheeg} DGCNN architecture consists of batch normalisation, a configurable amount of graph convolutional layers, and two fully connected layers. The weights of the adjacency matrix used in the convolutional layers are trainable parameters which are randomly initialised from a Xavier normal distribution (\cite{Xavier}). The ReLU activation function is then applied to ensure all the weights are positive, upon which the values are normalised. During training, the adjacency matrix is dynamically updated, enabling the model to learn an optimised graph structure that reflects the relational patterns in the input data.
+\begin{table}[!ht]
+    \centering
+    \begin{subtable}[t]{0.45\textwidth}
+        \centering
+        \begin{tabular}{|c|c|}
+            \hline
+            \textbf{Parameter} & \textbf{Value} \\
+            \hline
+            learning rate & 1e-4 \\
+            epochs & 200 \\
+            weight decay & 1e-3 \\
+            \hline
+        \end{tabular}
+        \caption{Training parameters}
+    \end{subtable}
+    \hfill
+    \begin{subtable}[t]{0.45\textwidth}
+        \centering
+        \begin{tabular}{|c|c|}
+            \hline
+            \textbf{Parameter} & \textbf{Value} \\
+            \hline
+            input channels & 5 \\
+            electrodes & 22 \\
+            graph convolution layers & 2 \\
+            \hline
+        \end{tabular}
+        \caption{Model architecture parameters}
+    \end{subtable}
+    \caption{Overview of selected hyperparameters. (a) Training parameters: learning rate, number of epochs, and weight decay. (b) Model architecture parameters: number of input channels, number of electrodes, and number of graph convolutional layers.}
+    \label{tab:parameters}
+\end{table}
+
+\noindent 
+Model training was conducted using the Adam optimiser (\cite{adamoptim}), with the Cross Entropy loss function as the optimisation objective. A relatively small learning rate was selected to enhance training stability, while weight decay was incorporated to mitigate overfitting. The number of training epochs was chosen to ensure sufficient learning progression without underfitting or excessive overfitting of the model.
+\vspace{0.5em}\\
+We train models with the specified parameters, several values for the number of hidden channels (see Table \ref{tab:hid_chans}), for 84 different seeds. In total, we train 756 models, which we use to compare learned graph representations across different random initialisations of the trainable parameters.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|}
+        \hline
+        8, 16, 24, 32, 40, 48, 56, 64, 128\\
+        \hline
+    \end{tabular}
+    \caption{Hidden channel values for model training}
+    \label{tab:hid_chans}
+\end{table}
+
+\noindent For model validation, we are using an 80-20 train-test split. A dedicated validation set was not used to maximise the number of available training samples. Given that the primary objective of this study is not to optimize predictive performance on unseen data, but rather to analyse the structural properties of the learned graph representations, we consider the trade-off of sacrificing a more precise estimate of generalisation performance in favour of a larger training set, to be justified and appropriate for our experiment. 
+\subsection{Graph Quality Checks}
+%Isomorphism and connectivity
+With model performance at a suitable level, we need to ensure the validity and applicability of the graph metrics employed in our analysis, we conducted a series of checks on all extracted graphs. 
+\vspace{0.5em}\\
+For all graphs, we use the \texttt{NetworkX} (\cite{NetworkX}) function \\
+\texttt{is\_connected}, which verifies that each graph is connected. Connectivity is a necessary condition for computing various centrality measures, and graphs failing this criterion were excluded from further analysis.
+\vspace{0.5em}\\
+Additionally, we use the \texttt{vf2pp\_is\_isomorphic} function from the same library to check if any two graphs are isomorphic. No isomorphic pairs were identified, highlighting the instability of the learned graphs.
+\vspace{0.5em}\\
+Finally, we removed all the very weak connections with a weight of 0.2 or lower from the adjacency matrix by setting their weight to zero. This serves to reduce the noise from the training and to make the graph markedly simpler to traverse. 
+
+%centrality measures
+\subsection{Centrality measures}
+Once we have ensured that all our graphs are connected and no two graphs are the same, we can inquire about the structure of the graphs. To evaluate and compare the learned graphs, produced by the DGCNN models, we employed several graph centrality metrics. These measures are used to quantify the importance and influence of nodes within a graph, providing an insight into the graphs’ structural properties and potentially helping us identify recurring patterns across them.
+\subsubsection{Barycentres}
+The first question we considered was whether to focus on the centre or the periphery of the graphs. Assuming that peripheral nodes are more prone to instability, we directed our attention toward centrality measures, with the hypothesis that core graph structures are more likely to exhibit stability. Using the \texttt{NetworkX} barycentre function, we compute the barycentres of the graphs derived from the adjacency matrices of trained DGCNN models. The results are aggregated into a dictionary, organized by model instance. For each model object, we record the barycentre nodes and compute their frequency across all seeds and runs. This produces a distribution highlighting which nodes most consistently emerge as barycentres throughout the experiments.
+To provide a clear overview, the counts are visualised in bar plots, where each bar represents a node (i.e., electrode), and the height corresponds to the number of times it was identified as a barycentre. 
+\subsubsection{Other centrality metrics}
+We observed evidence that certain nodes appear more frequently than others, suggesting potential structural patterns in the learned graphs. However, since different centrality measures emphasise distinct aspects of node importance, we decided to expand our analysis beyond barycentres. Specifically, we included three additional centrality metrics: Laplacian centrality, betweenness centrality, and current-flow betweenness centrality. We use the following \texttt{NetworkX} functions for each respective metric – \texttt{laplacian\_centrality}, \texttt{betweenness\_ centrality}, and \texttt{current\_flow\_betweenness\_centrality}.
+\vspace{0.5em}\\
+The implementation for each measure follows a consistent approach. For each trained model, we extract the adjacency matrix using a helper function and convert it to a graph object. Afterwards, the centrality values are computed using the appropriate \texttt{NetworkX} function and the nodes with the highest scores are stored with the purpose of further analysis. This process is repeated for each metric, and the output values allow us to investigate how centrality distributions vary across different DGCNN configurations. 
+\subsection{Use of Graph Measures}
+With these four graph measures, we obtain a centrality profile for every constructed graph. Rather than analysing each graph individually, we focus on the centrality metrics themselves, which allows for a more comprehensive comparison across models. To extract meaningful insights, we aggregate the centrality results across all model instances and visualise them using bar charts. These visualisations display how often specific nodes (i.e., electrodes) are identified as central, such as barycentres or Laplacian centres. This highlights patterns in node prominence across different centrality definitions.
+\vspace{0.5em}\\
+This aggregation allows us to apply well-established statistical tools, such as the chi-squared test, to see if the training changed the centre frequencies and if they differ from a uniform distribution.
+When specific nodes or regions appear frequently as centres, we further investigate their likelihood of being selected, providing a data-driven basis for identifying stable or functionally important nodes in the EEG-based graphs. 
+%Chi test
+\subsection{Chi Squared Tests}
+As we have compiled and aggregated data on the four centrality measures, we need to assess whether training the DGCNN model significantly altered the distribution of graph barycentres, we used Pearson's Chi squared test. 
+\vspace{0.5em}\\
+The test assesses the null hypothesis that the barycentre distribution of the untrained model graphs is the same as the one of the trained model graphs. To ensure a fair comparison, both the trained and untrained models shared identical architectures and random initialisations.
+The test statistic is defined in Equation \ref{chisq}.
+\begin{equation}\label{chisq}
+    \chi^2 = \sum_i^K\frac{(O_i - E_i)^2}{E_i}
+\end{equation}
+Where the observed values, $O_i$, are the counts of each electrode being a barycentre in a graph learned by the trained models, and the expected values, $E_i$ are the counts of each electrode being a barycentre in a graph initialised by the untrained models.
+\vspace{0.5em}\\
+% Moved to results - We obtain a $\chi^2$ test statistic of 212, which is higher than the critical value for significance level $\alpha=0.01$ and $K-1 = 21$ degrees of freedom, since we have 22 different electrodes. We thus reject the null hypothesis at a 1\% significance level, concluding that there is a significant difference in the barycentre counts before and after training the models.
+\vspace{0.5em}\\
+Secondly, we wanted to assess whether the barycentre distribution of the trained model graphs deviates significantly from a uniform distribution, where each electrode has the same probability of being a barycentre.
+\vspace{0.5em}\\
+To assess the hypothesis that the barycentres are uniformly distributed, we conducted another Pearson's Chi squared test, applying the formula in Equation \ref{chisq} to calculate the test statistic. The observed values, $O_i$, are the barycentre counts for the trained model graphs, and the expected values, $E_i$, are $\frac{1}{K} = \frac{1}{22}$ for all classes, since we are testing against a uniform distribution, where the probabilities of all classes are equal.
+\vspace{0.5em}\\
+% Moved to results - We obtain a $\chi^2$ test statistic of 172, which exceeds the critical value for significance level $\alpha=0.01$ with 21 degrees of freedom. We therefore reject the null hypothesis at the 1\% significance level, concluding that the electrodes don't have equal probabilities of being barycentres.
+
+%CKA
+\subsection{Centred Kernel Alignment Implementation}
+We apply the CKA metric (\cite{Hinton}) to quantify representational similarity between neural network layers, adapting the PyTorch-based implementation from (\cite{numpeecka}). Our version emphasises transparency, readability and computational efficiency, ideal for small-scale datasets. Key modifications to the original approach:
+
+\begin{itemize}
+    \item \textbf{Single-Epoch Computation}: CKA is computed only at the final training epoch to reduce runtime and ensure that the analysis reflects the model's final representational state.
+    \item \textbf{Fixed-Sample Evaluation}: Evaluation is restricted to the first $N=500$ data points, balancing memory usage with statistical reliability.
+    \item \textbf{Simplified Hook Management}: Gram matrices are computed on demand using manually registered hooks, minimising use complexity.
+\end{itemize}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ll}
+        \hline
+        \textbf{Advantage} & \textbf{Limitation} \\
+        \hline
+        Fixed memory usage & Potential sampling bias \\
+        Deterministic results & Higher variance vs. multi-epoch \\
+        Simplified debugging & Less scalable \\
+        \hline
+    \end{tabular}
+    \caption{Design Trade-offs}
+\end{table}
+
+\subsubsection{Computational Workflow}
+
+The CKA analysis pipeline consists of three stages:\\
+\textbf{1. Model Pair Selection}: Comparing every model $m_i$ to every other $m_j$ exactly once 
+\vspace{0.5em}\\
+\textbf{2. CKA Calculation}: For each pair of layers in the models', we compute Gram matrices and normaliae the HSIC:
+\begin{verbatim}
+K = gram_matrix(X.flatten(start_dim=1))
+L = gram_matrix(Y.flatten(start_dim=1))
+cka_matrix[i, j] = hsic(K, L) / (hsic(K, K).sqrt() * hsic(L, L).sqrt())
+\end{verbatim}
+\vspace{0.5em}
+\textbf{3. Aggregation}: Average CKA
+\begin{align}
+\bar{\mathbf{M}} &= \frac{1}{n}\sum_{i=1}^n \mathbf{M}_i \\
+\end{align}
+These three stages provide us with the average CKA.
+%Likelihood
+\subsection{Likelihood}
+Now that we have CKA scores and graph measurements, we need to quantify how likely each electrode is to be selected as a centre by our various centrality measures. We introduce a likelihood metric. This measure evaluates the frequency with which each label is chosen as the central node across all samples.
+\vspace{0.5em}\\
+The likelihood is calculated using Equation~\ref{eq:likelihood}. Specifically, we compute the total likelihood percentage for each label, representing the proportion of times a label is chosen as a centre and the excess likelihood over uniform, which quantifies how much the frequency differs for a label that is selected compared to what would be expected under a uniform distribution.
+\begin{align}\label{eq:likelihood}
+    \text{Total Likelihood \%}\quad &L^{t}_{label}= \frac{x_{label}}{x_{total}}\cdot100\\
+    \text{Above uniform \%}\quad & L^{u}_{\text{label}} = \left( \frac{x_{\text{label}} / x_{\text{total}}}{1 / n_{\text{labels}}} \right) \cdot 100 - 100
+\end{align}
+Here, $x_{\text{label}}$ is the number of times a specific label is selected, $x_{\text{total}}$ is the total number of centre selections across all labels, and $n_{labels}$ is the number of labels (22 in our case).
