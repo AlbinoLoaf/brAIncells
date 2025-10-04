@@ -160,7 +160,7 @@ def seed_all(seed):
 
 def run_models_hpc(param_list, n_runs, dict_model_arch, dict_training, dict_model_meta):
 
-    run_idx = 1
+    run_idx = a
     while run_idx < n_runs:
         random_seed = random.randint(0, 999999)
         seed_all(random_seed)
