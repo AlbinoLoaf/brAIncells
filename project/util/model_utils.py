@@ -291,7 +291,7 @@ class TrainNN():
         torch.save({
             'model_state': model.state_dict(),
             'params': param_dict
-        }, path)
+        },path)
 
         if has_val_set:
             losses = np.array([losses_train, losses_val])
